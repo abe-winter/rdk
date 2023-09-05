@@ -1,3 +1,4 @@
+//go:build !android
 // Package audioinput defines an audio capturing device.
 package audioinput
 

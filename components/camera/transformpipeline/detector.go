@@ -12,7 +12,7 @@ import (
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/robot"
-	"go.viam.com/rdk/services/vision"
+	// "go.viam.com/rdk/services/vision"
 	"go.viam.com/rdk/utils"
 	"go.viam.com/rdk/vision/objectdetection"
 )

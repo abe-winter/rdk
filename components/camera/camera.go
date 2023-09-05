@@ -1,3 +1,4 @@
+//go:build !android
 // Package camera defines an image capturing device.
 package camera
 

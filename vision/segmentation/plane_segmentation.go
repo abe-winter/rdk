@@ -1,3 +1,4 @@
+//go:build !android
 // Package segmentation implements object segmentation algorithms.
 package segmentation
 

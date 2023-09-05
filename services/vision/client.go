@@ -1,3 +1,4 @@
+//go:build !android
 package vision
 
 import (

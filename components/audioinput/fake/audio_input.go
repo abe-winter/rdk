@@ -1,3 +1,4 @@
+//go:build !android
 // Package fake implements a fake audio input.
 package fake
 

@@ -39,8 +39,8 @@ import (
 	"goji.io/pat"
 	googlegrpc "google.golang.org/grpc"
 
-	"go.viam.com/rdk/components/audioinput"
-	"go.viam.com/rdk/components/camera"
+	// "go.viam.com/rdk/components/audioinput"
+	// "go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/grpc"
 	"go.viam.com/rdk/module"
@@ -184,40 +184,6 @@ func hasManagedAuthHandlers(handlers []config.AuthHandlerConfig) bool {
 // where track names should not include colons.
 func validSDPTrackName(name string) string {
 	return strings.ReplaceAll(name, ":", "+")
-}
-
-// refreshVideoSources checks and initializes every possible video source that could be viewed from the robot.
-func (svc *webService) refreshVideoSources() {
-	for _, name := range camera.NamesFromRobot(svc.r) {
-		cam, err := camera.FromRobot(svc.r, name)
-		if err != nil {
-			continue
-		}
-		existing, ok := svc.videoSources[validSDPTrackName(name)]
-		if ok {
-			existing.Swap(cam)
-			continue
-		}
-		newSwapper := gostream.NewHotSwappableVideoSource(cam)
-		svc.videoSources[validSDPTrackName(name)] = newSwapper
-	}
-}
-
-// refreshAudioSources checks and initializes every possible audio source that could be viewed from the robot.
-func (svc *webService) refreshAudioSources() {
-	for _, name := range audioinput.NamesFromRobot(svc.r) {
-		input, err := audioinput.FromRobot(svc.r, name)
-		if err != nil {
-			continue
-		}
-		existing, ok := svc.audioSources[validSDPTrackName(name)]
-		if ok {
-			existing.Swap(input)
-			continue
-		}
-		newSwapper := gostream.NewHotSwappableAudioSource(input)
-		svc.audioSources[validSDPTrackName(name)] = newSwapper
-	}
 }
 
 // A Service controls the web server for a robot.
@@ -545,8 +511,8 @@ func (svc *webService) addNewStreams(ctx context.Context) error {
 	if !svc.streamInitialized() {
 		return nil
 	}
-	svc.refreshVideoSources()
-	svc.refreshAudioSources()
+	// svc.refreshVideoSources()
+	// svc.refreshAudioSources()
 	if svc.opts.streamConfig == nil {
 		if len(svc.videoSources) != 0 || len(svc.audioSources) != 0 {
 			svc.logger.Debug("not starting streams due to no stream config being set")
@@ -600,8 +566,8 @@ func (svc *webService) addNewStreams(ctx context.Context) error {
 }
 
 func (svc *webService) makeStreamServer(ctx context.Context) (*StreamServer, error) {
-	svc.refreshVideoSources()
-	svc.refreshAudioSources()
+	// svc.refreshVideoSources()
+	// svc.refreshAudioSources()
 	var streams []gostream.Stream
 	var streamTypes []bool
 

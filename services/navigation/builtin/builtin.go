@@ -19,7 +19,7 @@ import (
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/motion"
 	"go.viam.com/rdk/services/navigation"
-	"go.viam.com/rdk/services/vision"
+	// "go.viam.com/rdk/services/vision"
 	"go.viam.com/rdk/spatialmath"
 	rdkutils "go.viam.com/rdk/utils"
 )
@@ -98,9 +98,10 @@ func (conf *Config) Validate(path string) ([]string, error) {
 	}
 	deps = append(deps, resource.NewName(motion.API, conf.MotionServiceName).String())
 
-	for _, v := range conf.VisionServices {
-		deps = append(deps, resource.NewName(vision.API, v).String())
-	}
+	panic("notimp vision on android")
+	// for _, v := range conf.VisionServices {
+		// deps = append(deps, resource.NewName(vision.API, v).String())
+	// }
 
 	// get default speeds from config if set, else defaults from nav services const
 	if conf.MetersPerSec == 0 {
@@ -196,13 +197,14 @@ func (svc *builtIn) Reconfigure(ctx context.Context, deps resource.Dependencies,
 	}
 
 	var visionServices []resource.Name
-	for _, svc := range svcConfig.VisionServices {
-		visionSvc, err := vision.FromDependencies(deps, svc)
-		if err != nil {
-			return err
-		}
-		visionServices = append(visionServices, visionSvc.Name())
-	}
+	panic("notimp vision on android")
+	// for _, svc := range svcConfig.VisionServices {
+		// visionSvc, err := vision.FromDependencies(deps, svc)
+		// if err != nil {
+		// 	return err
+		// }
+		// visionServices = append(visionServices, visionSvc.Name())
+	// }
 
 	svc.mu.Lock()
 	defer svc.mu.Unlock()

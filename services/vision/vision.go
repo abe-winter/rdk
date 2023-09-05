@@ -1,3 +1,4 @@
+//go:build !android
 // Package vision is the service that allows you to access various computer vision algorithms
 // (like detection, segmentation, tracking, etc) that usually only require a camera or image input.
 package vision
