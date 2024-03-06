@@ -21,16 +21,20 @@ ifeq ($(UNAME),Linux)
 else
 	PLATFORM_NDK_ROOT ?= $(HOME)/Android/Sdk/ndk/26.1.10909125
 endif
+DROID_CC ?= $(PLATFORM_NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang
+DROID_PKG_CONFIG=$(PWD)/etc/android/prefix/lib/pkgconfig
 
 droid-gostream:
 	# temporary experiment
-	GOOS=android CGO_ENABLED=1 GOARCH=arm64 CC=$(PLATFORM_NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang \
-		go build -tags no_cgo ./gostream
+	GOOS=android CGO_ENABLED=1 GOARCH=arm64 CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
+		go build -tags no_cgo ./gostream/codec/x264
 
 droid-rdk.aar:
 	# creates an android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
-	CGO_LDFLAGS= gomobile bind -v -target $(APK_ARCH) -androidapi 28 -tags no_cgo -o $@ ./web/cmd/droid
+	CGO_LDFLAGS= CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
+		gomobile bind -v -target $(APK_ARCH) -androidapi 28 -tags no_cgo \
+		-o $@ ./web/cmd/droid
 	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../droid-rdk.aar jni
 
 # export PKG_CONFIG_PATH=~/viamrtsp/x264-android/lib/pkgconfig
