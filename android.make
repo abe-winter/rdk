@@ -25,16 +25,18 @@ etc/android/prefix/%:
 	TARGET_ARCH=$* etc/android/build-x264.sh
 
 droid-rdk.%.aar: etc/android/prefix/aarch64 etc/android/prefix/x86_64
-	# creates an android library that can be imported by native code
+	# creates a per-platform android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
-	CGO_LDFLAGS= PKG_CONFIG_PATH=$(DROID_PREFIX)/$(if $(filter arm64,$*),aarch64,x86_64)/lib/pkgconfig \
+	$(eval JNI_ARCH := $(if $(filter arm64,$*),arm64-v8a,x86_64))
+	$(eval CPU_ARCH := $(if $(filter arm64,$*),aarch64,x86_64))
+	CGO_LDFLAGS= PKG_CONFIG_PATH=$(DROID_PREFIX)/$(CPU_ARCH)/lib/pkgconfig \
 		gomobile bind -v -target android/$* -androidapi 28 -tags no_cgo \
 		-o $@ ./web/cmd/droid
-	rm -rf droidtmp/jni/$(if $(filter arm64,$*),arm64-v8a,x86_64)
-	mkdir -p droidtmp/jni/$(if $(filter arm64,$*),arm64-v8a,x86_64)
-	cp etc/android/prefix/$(if $(filter arm64,$*),aarch64,x86_64)/lib/*.so droidtmp/jni/$(if $(filter arm64,$*),arm64-v8a,x86_64)
-	cd droidtmp && zip -r ../$@ jni/$(if $(filter arm64,$*),arm64-v8a,x86_64)
-	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../$@ jni/$(if $(filter arm64,$*),arm64-v8a,x86_64)
+	rm -rf droidtmp/jni/$(JNI_ARCH)
+	mkdir -p droidtmp/jni/$(JNI_ARCH)
+	cp etc/android/prefix/$(CPU_ARCH)/lib/*.so droidtmp/jni/$(JNI_ARCH)
+	cd droidtmp && zip -r ../$@ jni/$(JNI_ARCH)
+	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../$@ jni/$(JNI_ARCH)
 
 droid-rdk.aar: droid-rdk.amd64.aar droid-rdk.arm64.aar
 	# multi-platform AAR -- twice the size, but portable
