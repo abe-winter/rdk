@@ -33,7 +33,7 @@ droid-rdk.aar:
 	# creates an android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
 	# todo: add back tflite
-	CGO_ENABLED=1 GOOS=android GOARCH=amd64 CGO_LDFLAGS= CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
+	CGO_LDFLAGS= PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
 		gomobile bind -v -target $(APK_ARCH) -androidapi 28 -tags no_cgo,no_tflite \
 		-o $@ ./web/cmd/droid
 	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../droid-rdk.aar jni
