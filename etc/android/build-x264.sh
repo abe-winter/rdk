@@ -11,9 +11,14 @@ else
 	HOST_OS=darwin
 fi
 
-API_LEVEL=29
+API_LEVEL=28
+: "${TARGET_ARCH:=aarch64}"
 TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/$HOST_OS-x86_64
-CC=$TOOLCHAIN/bin/aarch64-linux-android$API_LEVEL-clang
+export CC=$TOOLCHAIN/bin/$TARGET_ARCH-linux-android$API_LEVEL-clang
+EXTRAS=
+if [ $TARGET_ARCH = aarch64 ]; then
+	EXTRAS="--extra-cflags=-march=armv8-a"
+fi
 # CXX=$TOOLCHAIN/bin/$CC_ARCH-linux-android$API_LEVEL-clang++
 # AR=$TOOLCHAIN/bin/llvm-ar
 # LD=$CC
@@ -22,7 +27,7 @@ CC=$TOOLCHAIN/bin/aarch64-linux-android$API_LEVEL-clang
 # NM=$TOOLCHAIN/bin/llvm-nm
 SYSROOT=$TOOLCHAIN/sysroot
 DIRNAME=$(realpath $(dirname $0))
-PREFIX=$DIRNAME/prefix
+PREFIX=$DIRNAME/prefix/$TARGET_ARCH
 X264_ROOT=$DIRNAME/x264
 
 if [ ! -e $X264_ROOT ]; then
@@ -32,12 +37,13 @@ else
 	echo using existing x264
 fi
 
-# todo: pass -arch armv8-a in cflags
-cd $X264_ROOT && CC=$CC ./configure \
+cd $X264_ROOT
+./configure \
 	--prefix=$PREFIX \
-	--host=aarch64-linux-android \
+	--host=$TARGET_ARCH-linux-android \
 	--cross-prefix=$TOOLCHAIN/bin/llvm- \
 	--sysroot=$SYSROOT \
+	$EXTRAS \
 	--enable-shared \
 	--enable-static \
 	--disable-avs \
