@@ -45,7 +45,6 @@ cd $X264_ROOT
 	--sysroot=$SYSROOT \
 	$EXTRAS \
 	--enable-shared \
-	--enable-static \
 	--disable-avs \
 	--disable-swscale \
 	--disable-lavf \
