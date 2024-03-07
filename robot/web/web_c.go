@@ -16,29 +16,16 @@ import (
 
 	"github.com/goccy/go-graphviz"
 	"github.com/pkg/errors"
-	streampb "go.viam.com/api/stream/v1"
 	"go.viam.com/utils"
 	"go.viam.com/utils/rpc"
-	"golang.org/x/exp/slices"
 
 	"go.viam.com/rdk/components/audioinput"
-	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/gostream"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/robot"
-	weboptions "go.viam.com/rdk/robot/web/options"
 	webstream "go.viam.com/rdk/robot/web/stream"
-	rutils "go.viam.com/rdk/utils"
 )
-
-// StreamServer manages streams and displays.
-type StreamServer struct {
-	// Server serves streams
-	Server gostream.StreamServer
-	// HasStreams is true if service has streams that require a WebRTC connection.
-	HasStreams bool
-}
 
 // New returns a new web service for the given robot.
 func New(r robot.Robot, logger logging.Logger, opts ...Option) Service {
@@ -225,75 +212,12 @@ func (svc *webService) makeStreamServer(ctx context.Context) (*StreamServer, err
 	return &StreamServer{streamServer, true}, nil
 }
 
-func (svc *webService) startStream(streamFunc func(opts *webstream.BackoffTuningOptions) error) {
-	waitCh := make(chan struct{})
-	svc.webWorkers.Add(1)
-	utils.PanicCapturingGo(func() {
-		defer svc.webWorkers.Done()
-		close(waitCh)
-		opts := &webstream.BackoffTuningOptions{
-			BaseSleep: 50 * time.Microsecond,
-			MaxSleep:  2 * time.Second,
-			Cooldown:  5 * time.Second,
-		}
-		if err := streamFunc(opts); err != nil {
-			if utils.FilterOutError(err, context.Canceled) != nil {
-				svc.logger.Errorw("error streaming", "error", err)
-			}
-		}
-	})
-	<-waitCh
-}
-
-func (svc *webService) propertiesFromStream(ctx context.Context, stream gostream.Stream) (camera.Properties, error) {
-	res, err := svc.r.ResourceByName(camera.Named(stream.Name()))
-	if err != nil {
-		return camera.Properties{}, err
-	}
-
-	cam, ok := res.(camera.Camera)
-	if !ok {
-		return camera.Properties{}, errors.Errorf("cannot convert resource (type %T) to type (%T)", res, camera.Camera(nil))
-	}
-
-	return cam.Properties(ctx)
-}
-
-func (svc *webService) startVideoStream(ctx context.Context, source gostream.VideoSource, stream gostream.Stream) {
-	svc.startStream(func(opts *webstream.BackoffTuningOptions) error {
-		streamVideoCtx, _ := utils.MergeContext(svc.cancelCtx, ctx)
-		// Use H264 for cameras that support it; but do not override upstream values.
-		if props, err := svc.propertiesFromStream(ctx, stream); err == nil && slices.Contains(props.MimeTypes, rutils.MimeTypeH264) {
-			streamVideoCtx = gostream.WithMIMETypeHint(streamVideoCtx, rutils.WithLazyMIMEType(rutils.MimeTypeH264))
-		}
-
-		return webstream.StreamVideoSource(streamVideoCtx, source, stream, opts, svc.logger)
-	})
-}
-
 func (svc *webService) startAudioStream(ctx context.Context, source gostream.AudioSource, stream gostream.Stream) {
 	svc.startStream(func(opts *webstream.BackoffTuningOptions) error {
 		// Merge ctx that may be coming from a Reconfigure.
 		streamAudioCtx, _ := utils.MergeContext(svc.cancelCtx, ctx)
 		return webstream.StreamAudioSource(streamAudioCtx, source, stream, opts, svc.logger)
 	})
-}
-
-// refreshVideoSources checks and initializes every possible video source that could be viewed from the robot.
-func (svc *webService) refreshVideoSources() {
-	for _, name := range camera.NamesFromRobot(svc.r) {
-		cam, err := camera.FromRobot(svc.r, name)
-		if err != nil {
-			continue
-		}
-		existing, ok := svc.videoSources[validSDPTrackName(name)]
-		if ok {
-			existing.Swap(cam)
-			continue
-		}
-		newSwapper := gostream.NewHotSwappableVideoSource(cam)
-		svc.videoSources[validSDPTrackName(name)] = newSwapper
-	}
 }
 
 // refreshAudioSources checks and initializes every possible audio source that could be viewed from the robot.
@@ -324,35 +248,6 @@ func (svc *webService) Reconfigure(ctx context.Context, deps resource.Dependenci
 		return nil
 	}
 	return svc.addNewStreams(svc.cancelCtx)
-}
-
-func (svc *webService) closeStreamServer() {
-	if svc.streamServer.Server != nil {
-		if err := svc.streamServer.Server.Close(); err != nil {
-			svc.logger.Errorw("error closing stream server", "error", err)
-		}
-	}
-}
-
-func (svc *webService) initStreamServer(ctx context.Context, options *weboptions.Options) error {
-	var err error
-	svc.streamServer, err = svc.makeStreamServer(ctx)
-	if err != nil {
-		return err
-	}
-	if err := svc.rpcServer.RegisterServiceServer(
-		ctx,
-		&streampb.StreamService_ServiceDesc,
-		svc.streamServer.Server.ServiceServer(),
-		streampb.RegisterStreamServiceHandlerFromEndpoint,
-	); err != nil {
-		return err
-	}
-	if svc.streamServer.HasStreams {
-		// force WebRTC template rendering
-		options.WebRTC = true
-	}
-	return nil
 }
 
 func (svc *webService) handleVisualizeResourceGraph(w http.ResponseWriter, r *http.Request) {

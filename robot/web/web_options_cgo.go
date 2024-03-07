@@ -1,5 +1,3 @@
-//go:build !no_cgo
-
 package web
 
 import "go.viam.com/rdk/gostream"
