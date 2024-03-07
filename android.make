@@ -21,11 +21,6 @@ endif
 DROID_CC ?= $(PLATFORM_NDK_ROOT)/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android28-clang
 DROID_PREFIX = $(PWD)/etc/android/prefix
 
-droid-gostream:
-	# temporary experiment
-	GOOS=android CGO_ENABLED=1 GOARCH=arm64 CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
-		go build -tags no_cgo ./gostream/codec/x264
-
 etc/android/prefix/%:
 	TARGET_ARCH=$* etc/android/build-x264.sh
 
