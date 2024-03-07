@@ -12,8 +12,8 @@ server-android:
 		-o bin/viam-server-$(BUILD_CHANNEL)-android-aarch64 \
 		./web/cmd/server
 
-# change this to android/arm64 if you're testing locally and want faster builds
-APK_ARCH ?= android/arm64,android/amd64
+# change this to just android/arm64 if you're testing locally and want faster builds
+APK_ARCH ?= android/arm64
 
 UNAME = $(shell uname)
 ifeq ($(UNAME),Linux)
@@ -32,8 +32,9 @@ droid-gostream:
 droid-rdk.aar:
 	# creates an android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
-	CGO_LDFLAGS= CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
-		gomobile bind -v -target $(APK_ARCH) -androidapi 28 -tags no_cgo \
+	# todo: add back tflite
+	CGO_ENABLED=1 GOOS=android GOARCH=amd64 CGO_LDFLAGS= CC=$(DROID_CC) PKG_CONFIG_PATH=$(DROID_PKG_CONFIG) \
+		gomobile bind -v -target $(APK_ARCH) -androidapi 28 -tags no_cgo,no_tflite \
 		-o $@ ./web/cmd/droid
 	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../droid-rdk.aar jni
 
