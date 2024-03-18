@@ -29,4 +29,6 @@ function build() {
 for arch in arm64-v8a x86_64; do
   build $arch
 done
-cd ~ && rm -rf ~/tensorflow/
+if [ $KEEP_TFLITE_SRC != "1" ]; then
+  rm -rf ~/tensorflow/
+fi
