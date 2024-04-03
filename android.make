@@ -24,6 +24,8 @@ DROID_PREFIX = $(PWD)/etc/android/prefix
 etc/android/prefix/%:
 	TARGET_ARCH=$* etc/android/build-x264.sh
 
+.SECONDARY: etc/android/prefix/aarch64 etc/android/prefix/x86_64
+
 droid-rdk.%.aar: etc/android/prefix/aarch64 etc/android/prefix/x86_64
 	# creates a per-platform android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
@@ -34,16 +36,16 @@ droid-rdk.%.aar: etc/android/prefix/aarch64 etc/android/prefix/x86_64
 		-o $@ ./web/cmd/droid
 	rm -rf droidtmp/jni/$(JNI_ARCH)
 	mkdir -p droidtmp/jni/$(JNI_ARCH)
-	cp etc/android/prefix/$(CPU_ARCH)/lib/*.so* droidtmp/jni/$(JNI_ARCH)
-	cd droidtmp && zip -r ../$@ jni/$(JNI_ARCH)
-	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../$@ jni/$(JNI_ARCH)
+	cp -d etc/android/prefix/$(CPU_ARCH)/lib/*.so* droidtmp/jni/$(JNI_ARCH)
+	cd droidtmp && zip --symlinks -r ../$@ jni/$(JNI_ARCH)
+	cd ./services/mlmodel/tflitecpu/android/ && zip --symlinks -r ../../../../$@ jni/$(JNI_ARCH)
 
 droid-rdk.aar: droid-rdk.amd64.aar droid-rdk.arm64.aar
 	# multi-platform AAR -- twice the size, but portable
 	rm -rf droidtmp
 	cp droid-rdk.arm64.aar $@.tmp
 	unzip droid-rdk.amd64.aar -d droidtmp
-	cd droidtmp && zip -r ../$@.tmp jni
+	cd droidtmp && zip --symlinks -r ../$@.tmp jni
 	mv $@.tmp $@
 
 clean-droid:
