@@ -34,7 +34,7 @@ droid-rdk.%.aar: etc/android/prefix/aarch64 etc/android/prefix/x86_64
 		-o $@ ./web/cmd/droid
 	rm -rf droidtmp/jni/$(JNI_ARCH)
 	mkdir -p droidtmp/jni/$(JNI_ARCH)
-	cp etc/android/prefix/$(CPU_ARCH)/lib/*.so droidtmp/jni/$(JNI_ARCH)
+	cp etc/android/prefix/$(CPU_ARCH)/lib/*.so* droidtmp/jni/$(JNI_ARCH)
 	cd droidtmp && zip -r ../$@ jni/$(JNI_ARCH)
 	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../$@ jni/$(JNI_ARCH)
 
