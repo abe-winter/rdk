@@ -38,6 +38,16 @@ else
 fi
 
 cd $X264_ROOT
+if git apply --check ../unversion-soname.patch; then
+	git apply ../unversion-soname.patch
+elif git apply --reverse --check ../unversion-soname.patch; then
+	echo "not applying patch, already applied"
+else
+	# note: we patch the soname because android build resolves the libx264.so -> libx264.so.164 symlink
+	# if allowed, this will build successfully and then fail on startup.
+	echo "soname patch could not be applied, bailing"
+	exit 1
+fi
 ./configure \
 	--prefix=$PREFIX \
 	--host=$TARGET_ARCH-linux-android \
