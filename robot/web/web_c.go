@@ -94,7 +94,7 @@ func (svc *webService) addNewStreams(ctx context.Context) error {
 		stream, err := svc.streamServer.Server.NewStream(config)
 
 		// Skip if stream is already registered, otherwise raise any other errors
-		var registeredError *gostream.StreamAlreadyRegisteredError
+		var registeredError *webstream.StreamAlreadyRegisteredError
 		if errors.As(err, &registeredError) {
 			return nil, true, nil
 		} else if err != nil {
@@ -142,7 +142,7 @@ func (svc *webService) makeStreamServer(ctx context.Context) (*StreamServer, err
 		if len(svc.videoSources) != 0 || len(svc.audioSources) != 0 {
 			svc.logger.Debug("not starting streams due to no stream config being set")
 		}
-		noopServer, err := gostream.NewStreamServer(streams...)
+		noopServer, err := webstream.NewServer(streams...)
 		return &StreamServer{noopServer, false}, err
 	}
 
@@ -196,7 +196,7 @@ func (svc *webService) makeStreamServer(ctx context.Context) (*StreamServer, err
 		streamTypes = append(streamTypes, false)
 	}
 
-	streamServer, err := gostream.NewStreamServer(streams...)
+	streamServer, err := webstream.NewServer(streams...)
 	if err != nil {
 		return nil, err
 	}

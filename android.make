@@ -51,14 +51,3 @@ droid-rdk.aar: droid-rdk.amd64.aar droid-rdk.arm64.aar
 clean-droid:
 	# note: this doesn't clean x264 checkout
 	rm -rvf droid-rdk*.aar droid-rdk*.jar etc/android/prefix droidtmp
-
-# export PKG_CONFIG_PATH=~/viamrtsp/x264-android/lib/pkgconfig
-# CC_ARCH=aarch64
-# API_LEVEL=29
-# NDK_ROOT=$HOME/Android/Sdk/ndk/26.1.10909125
-# TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
-# CC=$TOOLCHAIN/bin/$CC_ARCH-linux-android$API_LEVEL-clang
-
-# GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC=$CC \
-# 	go build -v -tags no_cgo ./gostream/codec/x264
-# # go build -v github.com/pion/mediadevices/pkg/codec/x264

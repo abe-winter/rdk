@@ -2,7 +2,6 @@ BIN_OUTPUT_PATH = bin/$(shell uname -s)-$(shell uname -m)
 
 TOOL_BIN = bin/gotools/$(shell uname -s)-$(shell uname -m)
 
-NDK_ROOT ?= etc/android-ndk-r26
 BUILD_CHANNEL ?= local
 
 PATH_WITH_TOOLS="`pwd`/$(TOOL_BIN):`pwd`/node_modules/.bin:${PATH}"
