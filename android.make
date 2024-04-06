@@ -27,17 +27,10 @@ DROID_PREFIX = $(PWD)/etc/android/prefix
 # droid-rdk.%.aar: etc/android/prefix/aarch64 etc/android/prefix/x86_64
 droid-rdk.%.aar:
 	# creates a per-platform android library that can be imported by native code
-	$(eval JNI_ARCH := $(if $(filter arm64,$*),arm64-v8a,x86_64))
-	$(eval CPU_ARCH := $(if $(filter arm64,$*),aarch64,x86_64))
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
 	CGO_LDFLAGS= PKG_CONFIG_PATH=$(DROID_PREFIX)/$(CPU_ARCH)/lib/pkgconfig \
-		gomobile bind -v -target android/$* -androidapi 28 -tags no_cgo \
+		gomobile bind -v -target android/$* -androidapi 28 -tags no_cgo$(EXTRA_GOTAGS) \
 		-o $@ ./web/cmd/droid
-	rm -rf droidtmp/jni/$(JNI_ARCH)
-	mkdir -p droidtmp/jni/$(JNI_ARCH)
-	# cp etc/android/prefix/$(CPU_ARCH)/lib/*.so droidtmp/jni/$(JNI_ARCH)
-	cd droidtmp && zip -r ../$@ jni/$(JNI_ARCH)
-	cd ./services/mlmodel/tflitecpu/android/ && zip -r ../../../../$@ jni/$(JNI_ARCH)
 
 droid-rdk.aar: droid-rdk.amd64.aar droid-rdk.arm64.aar
 	# multi-platform AAR -- twice the size, but portable
