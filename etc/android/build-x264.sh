@@ -4,10 +4,10 @@
 set -euxo pipefail
 
 if [ $(uname) = Linux ]; then
-	NDK_ROOT=$HOME/Android/Sdk/ndk/26.1.10909125
+	: "${NDK_ROOT:=$HOME/Android/Sdk/ndk/26.1.10909125}"
 	HOST_OS=linux
 else
-	NDK_ROOT=$HOME/Library/Android/sdk/ndk/26.1.10909125
+	: "${NDK_ROOT:=$HOME/Library/Android/sdk/ndk/26.1.10909125}"
 	HOST_OS=darwin
 fi
 
