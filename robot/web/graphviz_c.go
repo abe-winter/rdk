@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/goccy/go-graphviz"
+
 	"go.viam.com/rdk/robot"
 )
 
