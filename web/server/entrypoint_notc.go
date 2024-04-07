@@ -3,12 +3,9 @@
 package server
 
 import (
-	"go.viam.com/rdk/gostream"
-	"go.viam.com/rdk/gostream/codec/x264"
+	robotimpl "go.viam.com/rdk/robot/impl"
 )
 
-func makeStreamConfig() gostream.StreamConfig {
-	var streamConfig gostream.StreamConfig
-	streamConfig.VideoEncoderFactory = x264.NewEncoderFactory()
-	return streamConfig
+func createRobotOptions() []robotimpl.Option {
+	return []robotimpl.Option{}
 }
