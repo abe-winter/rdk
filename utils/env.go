@@ -61,10 +61,10 @@ func PlatformHomeDir() string {
 	if runtime.GOOS == "android" {
 		return AndroidFilesDir
 	}
-	path, err := os.UserHomeDir()
-	if err != nil {
-		println("warning: PlatformHomeDir error", err.Error())
-	}
+	path, _ := os.UserHomeDir()
+	// if err != nil {
+	// 	println("warning: PlatformHomeDir error", err.Error())
+	// }
 	return path
 }
 
