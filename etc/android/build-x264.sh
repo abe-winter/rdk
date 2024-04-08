@@ -14,7 +14,7 @@ fi
 API_LEVEL=28
 : "${TARGET_ARCH:=aarch64}"
 TOOLCHAIN=$NDK_ROOT/toolchains/llvm/prebuilt/$HOST_OS-x86_64
-export CC=$TOOLCHAIN/bin/$TARGET_ARCH-linux-android$API_LEVEL-clang
+export CC=$TOOLCHAIN/bin/$TARGET_ARCH-linux-androideabi$API_LEVEL-clang
 EXTRAS=
 if [ $TARGET_ARCH = aarch64 ]; then
 	EXTRAS="--extra-cflags=-march=armv8-a"
