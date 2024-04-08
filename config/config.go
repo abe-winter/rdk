@@ -140,16 +140,18 @@ func droidModuleHack(conf *Module, logger logging.Logger) error {
 		logger.Debug("skipping copy, source is not newer")
 	} else {
 		logger.Warnw("copying module from android sdcard to app cache", "source", sourcePath, "dest", destPath)
-		source, err := os.Open(sourcePath)
+		source, err := os.Open(sourcePath) //nolint:gosec
 		if err != nil {
 			return err
 		}
-		defer source.Close()
-		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0700)
+		defer source.Close() //nolint:errcheck,gosec
+
+		dest, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND|os.O_TRUNC, 0o700) //nolint:gosec
 		if err != nil {
 			return err
 		}
-		defer dest.Close()
+		defer dest.Close() //nolint:errcheck,gosec
+
 		_, err = io.Copy(dest, source)
 		if err != nil {
 			return err
@@ -557,6 +559,7 @@ type Cloud struct {
 	LocationSecrets   []LocationSecret
 	LocationID        string
 	PrimaryOrgID      string
+	MachineID         string
 	ManagedBy         string
 	FQDN              string
 	LocalFQDN         string
@@ -583,6 +586,7 @@ type cloudData struct {
 	LocationSecrets   []LocationSecret `json:"location_secrets"`
 	LocationID        string           `json:"location_id"`
 	PrimaryOrgID      string           `json:"primary_org_id"`
+	MachineID         string           `json:"machine_id"`
 	ManagedBy         string           `json:"managed_by"`
 	FQDN              string           `json:"fqdn"`
 	LocalFQDN         string           `json:"local_fqdn"`
@@ -610,6 +614,7 @@ func (config *Cloud) UnmarshalJSON(data []byte) error {
 		LocationSecrets:   temp.LocationSecrets,
 		LocationID:        temp.LocationID,
 		PrimaryOrgID:      temp.PrimaryOrgID,
+		MachineID:         temp.MachineID,
 		ManagedBy:         temp.ManagedBy,
 		FQDN:              temp.FQDN,
 		LocalFQDN:         temp.LocalFQDN,
@@ -640,6 +645,7 @@ func (config Cloud) MarshalJSON() ([]byte, error) {
 		LocationSecrets:   config.LocationSecrets,
 		LocationID:        config.LocationID,
 		PrimaryOrgID:      config.PrimaryOrgID,
+		MachineID:         config.MachineID,
 		ManagedBy:         config.ManagedBy,
 		FQDN:              config.FQDN,
 		LocalFQDN:         config.LocalFQDN,
@@ -668,12 +674,6 @@ func (config *Cloud) Validate(path string, fromCloud bool) error {
 		}
 		if config.LocalFQDN == "" {
 			return resource.NewConfigValidationFieldRequiredError(path, "local_fqdn")
-		}
-		if config.PrimaryOrgID == "" {
-			return resource.NewConfigValidationFieldRequiredError(path, "primary_org_id")
-		}
-		if config.LocationID == "" {
-			return resource.NewConfigValidationFieldRequiredError(path, "location_id")
 		}
 	} else if config.Secret == "" {
 		return resource.NewConfigValidationFieldRequiredError(path, "secret")
