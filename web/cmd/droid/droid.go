@@ -3,6 +3,7 @@ package droid
 
 import (
 	"os"
+	"strings"
 
 	"go.viam.com/utils"
 
@@ -22,7 +23,11 @@ func DroidStopHook() { //nolint:revive
 }
 
 // MainEntry is called by our android app to start the RDK.
-func MainEntry(configPath, writeablePath string) {
+func MainEntry(configPath, writeablePath, osEnv string) {
 	os.Args = append(os.Args, "-config", configPath)
+	for _, envEntry := range strings.Split(osEnv, "\n") {
+		entryParts := strings.SplitN(envEntry, "=", 2)
+		os.Setenv(entryParts[0], entryParts[1])
+	}
 	utils.ContextualMain(server.RunServer, logger)
 }
