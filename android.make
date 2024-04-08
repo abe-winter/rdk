@@ -26,13 +26,13 @@ etc/android/prefix/%:
 
 .SECONDARY: etc/android/prefix/aarch64 etc/android/prefix/x86_64
 
-JNI_ARCH ?= armv7a
+JNI_ARCH ?= armeabi-v7a
 CPU_ARCH ?= armv7a
 
 droid-rdk.%.aar: etc/android/prefix/armv7a
 	# creates a per-platform android library that can be imported by native code
 	# we clear CGO_LDFLAGS so this doesn't try (and fail) to link to linuxbrew where present
-	CGO_LDFLAGS= PKG_CONFIG_PATH=$(DROID_PREFIX)/$(CPU_ARCH)/lib/pkgconfig \
+	CGO_LDFLAGS="-L/home/awinter/repo/rdk/etc/android/prefix/armv7a/lib" PKG_CONFIG_PATH=$(DROID_PREFIX)/$(CPU_ARCH)/lib/pkgconfig \
 		gomobile bind -v -target android/$* -androidapi 28 -tags no_cgo$(EXTRA_GOTAGS) \
 		-o $@ ./web/cmd/droid
 	rm -rf droidtmp/jni/$(JNI_ARCH)
