@@ -7,25 +7,6 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-def patch_yaml():
-    """
-    yaml 1.1 converts 'on' to true. github workflow yaml begins with 'on'.
-    pyyaml sorts keys alphabetically, which tends to mangle workflows.
-    this patches out those behaviors.
-    """
-    logger.debug('patching yaml implicits')
-    resolvers = yaml.resolver.Resolver.yaml_implicit_resolvers
-    implicits = ('on', 'off', 'yes', 'no')
-    keys = {key[0] for key in implicits} | {key[0].upper() for key in implicits}
-    for key in keys:
-        # remove bool resolvers
-        filtered = [tup for tup in resolvers[key] if tup[0].split(':')[-1] != 'bool']
-        if not filtered:
-            del resolvers[key]
-        else:
-            resolvers[key] = filtered
-    # yaml.add_representer(collections.OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
-
 def build_index_map(tokens: List[yaml.Event]) -> Dict[tuple, int]:
     """
     takes tokens from yaml.parse().
@@ -52,7 +33,6 @@ def main():
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO)
-    patch_yaml()
 
     # errors is {path: [job_id]}
     errors = {}
