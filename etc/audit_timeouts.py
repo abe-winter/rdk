@@ -52,9 +52,7 @@ def main():
         jobs_to_fix = []
         for job_id, job in blob['jobs'].items():
             if 'timeout-minutes' in job:
-                continue
-            jobs_to_fix.append(job_id)
-                # job['timeout-minutes'] = str(args.fix)
+                jobs_to_fix.append(job_id)
         errors[path] = jobs_to_fix
         if args.fix and jobs_to_fix:
             logger.info("writing fixes back to %s for %s", path, jobs_to_fix)
@@ -64,7 +62,7 @@ def main():
                 # note: this approach completely breaks if someone does one-line '{}' style maps
                 line = lines[tok.start_mark.line + i]
                 indent = re.match(r'(\s*)', line).group(0)
-                lines.insert(tok.start_mark.line + i, f"{indent}timeout-minutes: {args.fix}\n")
+                lines.insert(tok.start_mark.line + i, f"{indent}timeout-minutes: {args.fix} # from audit_timeouts.py\n")
             with open(path, 'w') as f:
                 f.writelines(lines)
     pprint.pprint(errors)
