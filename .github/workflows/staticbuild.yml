@@ -17,7 +17,6 @@ on:
 
 jobs:
   build_timestamp:
-    timeout-minutes: 45
     name: Set Build Timestamp 
     runs-on: ubuntu-latest
     outputs:
@@ -123,7 +122,6 @@ jobs:
         gzip: false
 
   output_summary:
-    timeout-minutes: 45
     name: Output Summary
     runs-on: ubuntu-latest
     needs: static
@@ -184,7 +182,6 @@ jobs:
         [ $RET1 == 0 ] && [ $RET1 == 0 ]
 
   static_deploy:
-    timeout-minutes: 45
     name: Static Deploy
     needs: static_test
     runs-on: ubuntu-latest
