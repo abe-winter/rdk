@@ -1,38 +1,92 @@
 #!/usr/bin/env python
 "audit timeouts in github workflows"
 
-import glob, logging, pprint, collections, argparse
+import glob, logging, pprint, argparse, re
+from typing import List, Dict
 import yaml
 
 logger = logging.getLogger(__name__)
 
+def patch_yaml():
+    """
+    yaml 1.1 converts 'on' to true. github workflow yaml begins with 'on'.
+    pyyaml sorts keys alphabetically, which tends to mangle workflows.
+    this patches out those behaviors.
+    """
+    logger.debug('patching yaml implicits')
+    resolvers = yaml.resolver.Resolver.yaml_implicit_resolvers
+    implicits = ('on', 'off', 'yes', 'no')
+    keys = {key[0] for key in implicits} | {key[0].upper() for key in implicits}
+    for key in keys:
+        # remove bool resolvers
+        filtered = [tup for tup in resolvers[key] if tup[0].split(':')[-1] != 'bool']
+        if not filtered:
+            del resolvers[key]
+        else:
+            resolvers[key] = filtered
+    # yaml.add_representer(collections.OrderedDict, yaml.representer.SafeRepresenter.represent_dict)
+
+def build_index_map(tokens: List[yaml.Event]) -> Dict[tuple, int]:
+    """
+    takes tokens from yaml.parse().
+    returns a lookup dictionary for finding the token corresponding to a semantic location in the document.
+    """
+    pattern = [yaml.ScalarEvent, yaml.MappingStartEvent]
+    stack = []
+    index_map = {}
+    for i in range(len(tokens)):
+        if list(map(type, tokens[max(0, i-1):i+1])) == pattern:
+            stack.append(tokens[i-1].value)
+            # [1:] here because of initial null from document-level anonymous mapping
+            index_map[tuple(stack[1:])] = i
+        elif type(tokens[i]) is yaml.MappingStartEvent:
+            stack.append(None) # this is an anonymous map in a sequence
+        elif type(tokens[i]) is yaml.MappingEndEvent:
+            stack.pop()
+    return index_map
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--fix', type=int, help="if non-zero, set default timeout-minutes where missing")
+    p.add_argument('--max', type=int, help="if present, maximum files to process")
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO)
+    patch_yaml()
 
     # errors is {path: [job_id]}
-    errors = collections.defaultdict(list)
+    errors = {}
+    nfiles = 0
     for path in glob.glob('.github/workflows/*.y*ml'):
+        nfiles += 1
+        if args.max is not None and nfiles > args.max:
+            logger.info('hit max files %d, stopping', args.max)
+            break
         logger.debug("checking %s", path)
         with open(path) as f:
-            # todo: preserve order, don't convert 'on' to True
             blob = yaml.safe_load(f)
-        nfixed = 0
+            f.seek(0)
+            tokens: List[yaml.Event] = list(yaml.parse(f))
+            f.seek(0)
+            lines = f.readlines()
+        jobs_to_fix = []
         for job_id, job in blob['jobs'].items():
             if 'timeout-minutes' in job:
                 continue
-            errors[path].append(job_id)
-            if args.fix:
-                nfixed += 1
-                job['timeout-minutes'] = str(args.fix)
-        if nfixed:
-            logger.info("writing %d fixes back to %s", nfixed, path)
+            jobs_to_fix.append(job_id)
+                # job['timeout-minutes'] = str(args.fix)
+        errors[path] = jobs_to_fix
+        if args.fix and jobs_to_fix:
+            logger.info("writing fixes back to %s for %s", path, jobs_to_fix)
+            index_map = build_index_map(tokens)
+            for i, job_id in enumerate(jobs_to_fix):
+                tok = tokens[index_map['jobs', job_id] + 1]
+                # note: this approach completely breaks if someone does one-line '{}' style maps
+                line = lines[tok.start_mark.line + i]
+                indent = re.match(r'(\s*)', line).group(0)
+                lines.insert(tok.start_mark.line + i, f"{indent}timeout-minutes: {args.fix}\n")
             with open(path, 'w') as f:
-                yaml.safe_dump(blob, f)
-
+                f.writelines(lines)
     pprint.pprint(errors)
 
 if __name__ == '__main__':
