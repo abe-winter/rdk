@@ -39,7 +39,7 @@ droid-rdk.%.aar: etc/android/prefix/armv7a
 	mkdir -p droidtmp/jni/$(JNI_ARCH)
 	cp -d etc/android/prefix/$(CPU_ARCH)/lib/*.so* droidtmp/jni/$(JNI_ARCH)
 	cd droidtmp && zip --symlinks -r ../$@ jni/$(JNI_ARCH)
-	cd ./services/mlmodel/tflitecpu/android/ && zip --symlinks -r ../../../../$@ jni/$(JNI_ARCH)
+	# cd ./services/mlmodel/tflitecpu/android/ && zip --symlinks -r ../../../../$@ jni/$(JNI_ARCH)
 
 droid-rdk.aar: droid-rdk.amd64.aar droid-rdk.arm64.aar
 	# multi-platform AAR -- twice the size, but portable
