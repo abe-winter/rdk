@@ -699,8 +699,8 @@ func readModels(path string, logger logging.Logger) ([]ModuleComponent, error) {
 	parentAddr += "/parent.sock"
 
 	cfg := modconfig.Module{
-		Name:    "xxxx",
-		ExePath: path,
+		Name:       "xxxx",
+		RawExePath: path,
 	}
 
 	mgr := modmanager.NewManager(context.Background(), parentAddr, logger, modmanageroptions.Options{UntrustedEnv: false})

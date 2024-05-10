@@ -522,7 +522,7 @@ func TestConfigEnsurePartialStart(t *testing.T) {
 	invalidModules := config.Config{
 		Modules: []config.Module{{
 			Name:        "testmodErr",
-			ExePath:     ".",
+			RawExePath:  ".",
 			LogLevel:    "debug",
 			Type:        config.ModuleTypeRegistry,
 			ModuleID:    "mod:testmodErr",
@@ -1063,9 +1063,9 @@ func TestValidateUniqueNames(t *testing.T) {
 		},
 	}
 	module1 := config.Module{
-		Name:     "m1",
-		LogLevel: "info",
-		ExePath:  ".",
+		Name:       "m1",
+		LogLevel:   "info",
+		RawExePath: ".",
 	}
 
 	process1 := pexec.ProcessConfig{

@@ -258,7 +258,7 @@ func ModuleConfigToProto(module *Module) (*pb.ModuleConfig, error) {
 
 	proto := pb.ModuleConfig{
 		Name:     module.Name,
-		Path:     module.ExePath,
+		Path:     module.RawExePath,
 		LogLevel: module.LogLevel,
 		Type:     string(module.Type),
 		ModuleId: module.ModuleID,
@@ -278,7 +278,7 @@ func ModuleConfigFromProto(proto *pb.ModuleConfig) (*Module, error) {
 
 	module := Module{
 		Name:        proto.GetName(),
-		ExePath:     proto.GetPath(),
+		RawExePath:  proto.GetPath(),
 		LogLevel:    proto.GetLogLevel(),
 		Type:        ModuleType(proto.GetType()),
 		ModuleID:    proto.GetModuleId(),

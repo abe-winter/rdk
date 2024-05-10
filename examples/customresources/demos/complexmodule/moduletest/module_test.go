@@ -331,7 +331,7 @@ func modifyCfg(t *testing.T, cfgIn string, logger logging.Logger) (string, int, 
 		return "", 0, err
 	}
 	cfg.Network.BindAddress = fmt.Sprintf("localhost:%d", port)
-	cfg.Modules[0].ExePath = modPath
+	cfg.Modules[0].RawExePath = modPath
 	output, err := json.Marshal(cfg)
 	if err != nil {
 		return "", 0, err

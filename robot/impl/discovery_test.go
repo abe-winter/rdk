@@ -133,12 +133,12 @@ func TestDiscovery(t *testing.T) {
 		cfg := &config.Config{
 			Modules: []config.Module{
 				{
-					Name:    "simple",
-					ExePath: simplePath,
+					Name:       "simple",
+					RawExePath: simplePath,
 				},
 				{
-					Name:    "complex",
-					ExePath: complexPath,
+					Name:       "complex",
+					RawExePath: complexPath,
 				},
 			},
 		}

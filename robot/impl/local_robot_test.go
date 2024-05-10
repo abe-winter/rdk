@@ -1841,9 +1841,9 @@ func TestConfigMethod(t *testing.T) {
 		Cloud: &config.Cloud{},
 		Modules: []config.Module{
 			{
-				Name:     "mod",
-				ExePath:  complexPath,
-				LogLevel: "info",
+				Name:       "mod",
+				RawExePath: complexPath,
+				LogLevel:   "info",
 			},
 		},
 		Remotes: []config.Remote{
@@ -2469,8 +2469,8 @@ func TestOrphanedResources(t *testing.T) {
 		cfg := &config.Config{
 			Modules: []config.Module{
 				{
-					Name:    "mod",
-					ExePath: complexPath,
+					Name:       "mod",
+					RawExePath: complexPath,
 				},
 			},
 			Components: []resource.Config{
@@ -2499,8 +2499,8 @@ func TestOrphanedResources(t *testing.T) {
 		cfg2 := &config.Config{
 			Modules: []config.Module{
 				{
-					Name:    "mod",
-					ExePath: simplePath,
+					Name:       "mod",
+					RawExePath: simplePath,
 				},
 			},
 			Components: []resource.Config{
@@ -2568,8 +2568,8 @@ func TestOrphanedResources(t *testing.T) {
 		cfg := &config.Config{
 			Modules: []config.Module{
 				{
-					Name:    "mod",
-					ExePath: testPath,
+					Name:       "mod",
+					RawExePath: testPath,
 				},
 			},
 			Components: []resource.Config{
@@ -2722,8 +2722,8 @@ func TestDependentAndOrphanedResources(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: complexPath,
+				Name:       "mod",
+				RawExePath: complexPath,
 			},
 		},
 		Components: []resource.Config{
@@ -2758,8 +2758,8 @@ func TestDependentAndOrphanedResources(t *testing.T) {
 	cfg2 := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: simplePath,
+				Name:       "mod",
+				RawExePath: simplePath,
 			},
 		},
 		Components: []resource.Config{
@@ -2862,8 +2862,8 @@ func TestModuleDebugReconfigure(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: testPath,
+				Name:       "mod",
+				RawExePath: testPath,
 			},
 		},
 	}
@@ -2878,9 +2878,9 @@ func TestModuleDebugReconfigure(t *testing.T) {
 	cfg2 := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:     "mod",
-				ExePath:  testPath,
-				LogLevel: "debug",
+				Name:       "mod",
+				RawExePath: testPath,
+				LogLevel:   "debug",
 			},
 		},
 	}
@@ -2902,8 +2902,8 @@ func TestResourcelessModuleRemove(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: testPath,
+				Name:       "mod",
+				RawExePath: testPath,
 			},
 		},
 	}
@@ -2931,8 +2931,8 @@ func TestCrashedModuleReconfigure(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: testPath,
+				Name:       "mod",
+				RawExePath: testPath,
 			},
 		},
 		Components: []resource.Config{
@@ -2961,7 +2961,7 @@ func TestCrashedModuleReconfigure(t *testing.T) {
 
 		// Reconfigure module to a malformed module (does not start listening).
 		// Assert that "h" is removed after reconfiguration error.
-		cfg.Modules[0].ExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
+		cfg.Modules[0].RawExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
 		r.Reconfigure(ctx, cfg)
 
 		testutils.WaitForAssertion(t, func(tb testing.TB) {
@@ -2975,7 +2975,7 @@ func TestCrashedModuleReconfigure(t *testing.T) {
 
 	// Reconfigure module back to testmodule. Assert that 'h' is eventually
 	// added back to the resource manager (the module recovers).
-	cfg.Modules[0].ExePath = testPath
+	cfg.Modules[0].RawExePath = testPath
 	r.Reconfigure(ctx, cfg)
 
 	testutils.WaitForAssertion(t, func(tb testing.TB) {
@@ -2997,8 +2997,8 @@ func TestModularResourceReconfigurationCount(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: testPath,
+				Name:       "mod",
+				RawExePath: testPath,
 			},
 		},
 		Components: []resource.Config{
@@ -3035,9 +3035,9 @@ func TestModularResourceReconfigurationCount(t *testing.T) {
 	cfg2 := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:     "mod",
-				ExePath:  testPath,
-				LogLevel: "debug",
+				Name:       "mod",
+				RawExePath: testPath,
+				LogLevel:   "debug",
 			},
 		},
 		Components: []resource.Config{
@@ -3071,9 +3071,9 @@ func TestModularResourceReconfigurationCount(t *testing.T) {
 	cfg3 := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:     "mod",
-				ExePath:  testPath,
-				LogLevel: "debug",
+				Name:       "mod",
+				RawExePath: testPath,
+				LogLevel:   "debug",
 			},
 		},
 		Components: []resource.Config{
@@ -3113,8 +3113,8 @@ func TestModularResourceReconfigurationCount(t *testing.T) {
 	cfg4 := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "mod",
-				ExePath: testPath,
+				Name:       "mod",
+				RawExePath: testPath,
 			},
 		},
 		Components: []resource.Config{
@@ -3188,12 +3188,12 @@ func TestImplicitDepsAcrossModules(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "complex-module",
-				ExePath: complexPath,
+				Name:       "complex-module",
+				RawExePath: complexPath,
 			},
 			{
-				Name:    "test-module",
-				ExePath: testPath,
+				Name:       "test-module",
+				RawExePath: testPath,
 			},
 		},
 		Components: []resource.Config{
@@ -3383,20 +3383,4 @@ func TestCloudMetadata(t *testing.T) {
 			MachinePartID: "the-robot-part",
 		})
 	})
-}
-
-func TestMakeNormalAndSyntheticPackages(t *testing.T) {
-	logger := logging.NewTestLogger(t)
-	conf := config.Config{
-		Packages: []config.PackageConfig{
-			{PackagePathDets: config.PackagePathDets{Name: "normal", Package: "normal"}},
-		},
-		Modules: []config.Module{
-			{Name: "yes-tar", Type: config.ModuleTypeLocal, ExePath: "whatever.tar.gz"},
-			{Name: "no-tar", Type: config.ModuleTypeLocal, ExePath: "whatever.exe"},
-		},
-	}
-	res := makeNormalAndSyntheticPackages(logger, &conf)
-	test.That(t, len(res), test.ShouldEqual, 2)
-	test.That(t, res[1].LocalPath, test.ShouldEqual, "whatever.tar.gz")
 }

@@ -495,10 +495,10 @@ func TestDynamicModuleLogging(t *testing.T) {
 	cfg := &config.Config{
 		Components: []resource.Config{helperConf},
 		Modules: []config.Module{{
-			Name:     "helperModule",
-			ExePath:  modPath,
-			LogLevel: "info",
-			Type:     "local",
+			Name:       "helperModule",
+			RawExePath: modPath,
+			LogLevel:   "info",
+			Type:       "local",
 		}},
 	}
 
@@ -562,12 +562,12 @@ func TestTwoModulesSameName(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:    "samename",
-				ExePath: simplePath,
+				Name:       "samename",
+				RawExePath: simplePath,
 			},
 			{
-				Name:    "samename",
-				ExePath: complexPath,
+				Name:       "samename",
+				RawExePath: complexPath,
 			},
 		},
 		// This field is false due to zero-value by default, but specify explicitly
@@ -583,5 +583,5 @@ func TestTwoModulesSameName(t *testing.T) {
 	// Assert that only the first module with the same name was honored.
 	moduleCfgs := rr.manager.moduleManager.Configs()
 	test.That(t, len(moduleCfgs), test.ShouldEqual, 1)
-	test.That(t, moduleCfgs[0].ExePath, test.ShouldEqual, simplePath)
+	test.That(t, moduleCfgs[0].RawExePath, test.ShouldEqual, simplePath)
 }

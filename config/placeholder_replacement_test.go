@@ -40,7 +40,7 @@ func TestPlaceholderReplacement(t *testing.T) {
 			},
 			Modules: []config.Module{
 				{
-					ExePath: "${packages.module.coolmod}/bin",
+					RawExePath: "${packages.module.coolmod}/bin",
 				},
 			},
 			Packages: []config.PackageConfig{
@@ -77,7 +77,7 @@ func TestPlaceholderReplacement(t *testing.T) {
 		attrMap = cfg.Services[0].Attributes
 		test.That(t, attrMap["apply_to_services_too"], test.ShouldResemble, dirForMlModel)
 		// module
-		exePath := cfg.Modules[0].ExePath
+		exePath := cfg.Modules[0].RawExePath
 		test.That(t, exePath, test.ShouldResemble, fmt.Sprintf("%s/bin", dirForModule))
 	})
 	t.Run("package placeholder typos", func(t *testing.T) {

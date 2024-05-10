@@ -64,7 +64,7 @@ func TestModManagerFunctions(t *testing.T) {
 	mod := &module{
 		cfg: config.Module{
 			Name:        "test",
-			ExePath:     modPath,
+			RawExePath:  modPath,
 			Type:        config.ModuleTypeRegistry,
 			ModuleID:    "new:york",
 			Environment: map[string]string{"SMART": "MACHINES"},
@@ -128,8 +128,8 @@ func TestModManagerFunctions(t *testing.T) {
 	test.That(t, err, test.ShouldBeNil)
 
 	modCfg := config.Module{
-		Name:    "simple-module",
-		ExePath: modPath,
+		Name:       "simple-module",
+		RawExePath: modPath,
 	}
 	err = mgr.Add(ctx, modCfg)
 	test.That(t, err, test.ShouldBeNil)
@@ -210,7 +210,7 @@ func TestModManagerFunctions(t *testing.T) {
 	test.That(t, ret["total"], test.ShouldEqual, 24)
 
 	// Change underlying binary path of module to be a different copy of the same module
-	modCfg.ExePath = modPath2
+	modCfg.RawExePath = modPath2
 
 	// Reconfigure module with new ExePath.
 	orphanedResourceNames, err := mgr.Reconfigure(ctx, modCfg)
@@ -238,8 +238,8 @@ func TestModManagerFunctions(t *testing.T) {
 	mgr = NewManager(ctx, parentAddr, logger, modmanageroptions.Options{UntrustedEnv: true})
 
 	modCfg = config.Module{
-		Name:    "simple-module",
-		ExePath: modPath,
+		Name:       "simple-module",
+		RawExePath: modPath,
 	}
 	err = mgr.Add(ctx, modCfg)
 	test.That(t, err, test.ShouldEqual, errModularResourcesDisabled)
@@ -264,8 +264,8 @@ func TestModManagerFunctions(t *testing.T) {
 	test.That(t, err, test.ShouldBeNil)
 	// create a module and add it to the modmanager
 	modCfg = config.Module{
-		Name:    "simple-module",
-		ExePath: modPath,
+		Name:       "simple-module",
+		RawExePath: modPath,
 	}
 	err = mgr.Add(ctx, modCfg)
 	test.That(t, err, test.ShouldBeNil)
@@ -336,8 +336,8 @@ func TestModManagerValidation(t *testing.T) {
 	mgr := NewManager(ctx, parentAddr, logger, modmanageroptions.Options{UntrustedEnv: false})
 
 	modCfg := config.Module{
-		Name:    "complex-module",
-		ExePath: modPath,
+		Name:       "complex-module",
+		RawExePath: modPath,
 	}
 	err = mgr.Add(ctx, modCfg)
 	test.That(t, err, test.ShouldBeNil)
@@ -402,7 +402,7 @@ func TestModuleReloading(t *testing.T) {
 		logger, logs := logging.NewObservedTestLogger(t)
 
 		// Precompile module to avoid timeout issues when building takes too long.
-		modCfg.ExePath = rtestutils.BuildTempModule(t, "module/testmodule")
+		modCfg.RawExePath = rtestutils.BuildTempModule(t, "module/testmodule")
 
 		// This test neither uses a resource manager nor asserts anything about
 		// the existence of resources in the graph. Use a dummy
@@ -467,7 +467,7 @@ func TestModuleReloading(t *testing.T) {
 		logger, logs := logging.NewObservedTestLogger(t)
 
 		// Precompile module to avoid timeout issues when building takes too long.
-		modCfg.ExePath = rtestutils.BuildTempModule(t, "module/testmodule")
+		modCfg.RawExePath = rtestutils.BuildTempModule(t, "module/testmodule")
 
 		// This test neither uses a resource manager nor asserts anything about
 		// the existence of resources in the graph. Use a dummy
@@ -497,7 +497,7 @@ func TestModuleReloading(t *testing.T) {
 
 		// Remove testmodule binary, so process cannot be successfully restarted
 		// after crash.
-		err = os.Remove(modCfg.ExePath)
+		err = os.Remove(modCfg.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 
 		// Run 'kill_module' command through helper resource to cause module to
@@ -536,7 +536,7 @@ func TestModuleReloading(t *testing.T) {
 		logger, logs := logging.NewObservedTestLogger(t)
 
 		// Precompile module to avoid timeout issues when building takes too long.
-		modCfg.ExePath = rtestutils.BuildTempModule(t, "module/testmodule")
+		modCfg.RawExePath = rtestutils.BuildTempModule(t, "module/testmodule")
 
 		// This test neither uses a resource manager nor asserts anything about
 		// the existence of resources in the graph. Use a dummy
@@ -595,7 +595,7 @@ func TestModuleReloading(t *testing.T) {
 	t.Run("timed out module process is stopped", func(t *testing.T) {
 		logger, logs := logging.NewObservedTestLogger(t)
 
-		modCfg.ExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
+		modCfg.RawExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
 
 		// Lower module startup timeout to avoid waiting for 5 mins.
 		t.Setenv(rutils.ModuleStartupTimeoutEnvVar, "10ms")
@@ -630,7 +630,7 @@ func TestModuleReloading(t *testing.T) {
 	t.Run("cancelled module process is stopped", func(t *testing.T) {
 		logger, logs := logging.NewObservedTestLogger(t)
 
-		modCfg.ExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
+		modCfg.RawExePath = rutils.ResolveFile("module/testmodule/fakemodule.sh")
 
 		// Lower module startup timeout to avoid waiting for 5 mins.
 		t.Setenv(rutils.ModuleStartupTimeoutEnvVar, "30s")
@@ -734,9 +734,9 @@ func TestDebugModule(t *testing.T) {
 			defer mgr.Close(ctx)
 
 			modCfg := config.Module{
-				Name:     "test-module",
-				ExePath:  modPath,
-				LogLevel: tc.moduleLogLevel,
+				Name:       "test-module",
+				RawExePath: modPath,
+				LogLevel:   tc.moduleLogLevel,
 			}
 
 			err = mgr.Add(ctx, modCfg)
@@ -772,9 +772,9 @@ func TestModuleMisc(t *testing.T) {
 	// Build the testmodule
 	modPath := rtestutils.BuildTempModule(t, "module/testmodule")
 	modCfg := config.Module{
-		Name:    "test-module",
-		ExePath: modPath,
-		Type:    config.ModuleTypeLocal,
+		Name:       "test-module",
+		RawExePath: modPath,
+		Type:       config.ModuleTypeLocal,
 	}
 
 	testViamHomeDir := t.TempDir()
@@ -849,7 +849,7 @@ func TestModuleMisc(t *testing.T) {
 		// Add the module with a user-specified VIAM_MODULE_ROOT
 		modCfg := config.Module{
 			Name:        "test-module",
-			ExePath:     modPath,
+			RawExePath:  modPath,
 			Environment: map[string]string{"VIAM_MODULE_ROOT": "/"},
 			Type:        config.ModuleTypeLocal,
 		}
@@ -917,14 +917,14 @@ func TestTwoModulesRestart(t *testing.T) {
 
 	modCfgs := []config.Module{
 		{
-			Name:    "test-module",
-			ExePath: rtestutils.BuildTempModule(t, "module/testmodule"),
-			Type:    config.ModuleTypeLocal,
+			Name:       "test-module",
+			RawExePath: rtestutils.BuildTempModule(t, "module/testmodule"),
+			Type:       config.ModuleTypeLocal,
 		},
 		{
-			Name:    "test-module2",
-			ExePath: rtestutils.BuildTempModule(t, "module/testmodule2"),
-			Type:    config.ModuleTypeLocal,
+			Name:       "test-module2",
+			RawExePath: rtestutils.BuildTempModule(t, "module/testmodule2"),
+			Type:       config.ModuleTypeLocal,
 		},
 	}
 
@@ -1054,10 +1054,10 @@ func TestRTPPassthrough(t *testing.T) {
 	viamHomeTemp := t.TempDir()
 	mod := &module{
 		cfg: config.Module{
-			Name:     "test",
-			ExePath:  modPath,
-			Type:     config.ModuleTypeRegistry,
-			ModuleID: "rtppassthrough:camera",
+			Name:       "test",
+			RawExePath: modPath,
+			Type:       config.ModuleTypeRegistry,
+			ModuleID:   "rtppassthrough:camera",
 		},
 		dataDir: "module-data-dir",
 		logger:  logger,
@@ -1077,8 +1077,8 @@ func TestRTPPassthrough(t *testing.T) {
 	test.That(t, err, test.ShouldBeNil)
 
 	modCfg := config.Module{
-		Name:    "rtp-passthrough-module",
-		ExePath: modPath,
+		Name:       "rtp-passthrough-module",
+		RawExePath: modPath,
 	}
 	err = mgr.Add(ctx, modCfg)
 	test.That(t, err, test.ShouldBeNil)
@@ -1234,7 +1234,7 @@ func TestRTPPassthrough(t *testing.T) {
 	test.That(t, sub.Terminated.Err(), test.ShouldBeNil)
 
 	// Change underlying binary path of module to be a different copy of the same module
-	modCfg.ExePath = modPath2
+	modCfg.RawExePath = modPath2
 
 	// Reconfigure module with new ExePath.
 	orphanedResourceNames, err := mgr.Reconfigure(ctx, modCfg)

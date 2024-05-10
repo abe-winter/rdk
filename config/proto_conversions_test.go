@@ -179,7 +179,7 @@ var testCloudConfig = Cloud{
 
 var testModule = Module{
 	Name:        "testmod",
-	ExePath:     "/tmp/test.mod",
+	RawExePath:  "/tmp/test.mod",
 	LogLevel:    "debug",
 	Type:        ModuleTypeLocal,
 	ModuleID:    "a:b",
@@ -188,7 +188,7 @@ var testModule = Module{
 
 var testModuleWithError = Module{
 	Name:        "testmodErr",
-	ExePath:     "/tmp/test.mod",
+	RawExePath:  "/tmp/test.mod",
 	LogLevel:    "debug",
 	Type:        ModuleTypeRegistry,
 	ModuleID:    "mod:testmodErr",
@@ -232,7 +232,7 @@ func init() {
 //nolint:thelper
 func validateModule(t *testing.T, actual, expected Module) {
 	test.That(t, actual.Name, test.ShouldEqual, expected.Name)
-	test.That(t, actual.ExePath, test.ShouldEqual, expected.ExePath)
+	test.That(t, actual.RawExePath, test.ShouldEqual, expected.RawExePath)
 	test.That(t, actual.LogLevel, test.ShouldEqual, expected.LogLevel)
 	test.That(t, actual, test.ShouldResemble, expected)
 }

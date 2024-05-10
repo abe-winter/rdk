@@ -21,8 +21,9 @@ const reservedModuleName = "parent"
 type Module struct {
 	// Name is an arbitrary name used to identify the module, and is used to name it's socket as well.
 	Name string `json:"name"`
-	// ExePath is the path (either absolute, or relative to the working directory) to the executable module file.
-	ExePath string `json:"executable_path"`
+	// RawExePath is the path (either absolute, or relative to the working directory) to the module file. May be
+	// an executable, or a tarball with normal module contents.
+	RawExePath string `json:"executable_path"`
 	// LogLevel represents the level at which the module should log its messages. It will be passed as a commandline
 	// argument "log-level" (i.e. preceded by "--log-level=") to the module executable. If unset or set to an empty
 	// string, "--log-level=debug" will be passed to the module executable if the server was started with "-debug".
@@ -74,7 +75,7 @@ func (m *Module) validate(path string) error {
 	// Only check if the path exists during validation for local modules because the packagemanager may not have downloaded
 	// the package yet.
 	if m.Type == ModuleTypeLocal {
-		_, err := os.Stat(m.ExePath)
+		_, err := os.Stat(m.RawExePath)
 		if err != nil {
 			return errors.Wrapf(err, "module %s executable path error", path)
 		}
@@ -105,31 +106,20 @@ func (m Module) Equals(other Module) bool {
 
 var tarballExtensionsRegexp = regexp.MustCompile(`\.(tgz|tar\.gz)$`)
 
-// NeedsSyntheticPackage returns true if this is a local module pointing at a tarball.
-func (m Module) NeedsSyntheticPackage() bool {
-	return m.Type == ModuleTypeLocal && tarballExtensionsRegexp.MatchString(strings.ToLower(m.ExePath))
+// IsLocalTarball returns true if this is a local module pointing at a tarball.
+func (m Module) IsLocalTarball() bool {
+	return m.Type == ModuleTypeLocal && tarballExtensionsRegexp.MatchString(strings.ToLower(m.RawExePath))
 }
 
-// SyntheticPackage creates a fake package for a local module which points to a local tarball.
-func (m Module) SyntheticPackage() (PackageConfig, error) {
-	var ret PackageConfig
-	if m.Type != ModuleTypeLocal {
-		return ret, errors.New("non-local package passed to syntheticPackage")
+// PackagePathDets creates package download details for local tarball modules.
+func (m Module) PackagePathDets() PackagePathDets {
+	name := fmt.Sprintf("synthetic-%s", m.Name)
+	return PackagePathDets{
+		Name:    name,
+		Package: name,
+		Type:    PackageTypeModule,
+		Version: "0.0.0",
 	}
-	ret.Name = fmt.Sprintf("synthetic-%s", m.Name)
-	ret.Package = ret.Name
-	ret.Type = PackageTypeModule
-	ret.LocalPath = m.ExePath
-	return ret, nil
-}
-
-// syntheticPackageExeDir returns the unpacked ExePath for local tarball modules.
-func (m Module) syntheticPackageExeDir() (string, error) {
-	pkg, err := m.SyntheticPackage()
-	if err != nil {
-		return "", err
-	}
-	return pkg.LocalDataDirectory(viamPackagesDir), nil
 }
 
 // EntrypointOnlyMetaJSON is a miniature version . We do this to avoid a circular dep between CLI and RDK.
@@ -140,8 +130,8 @@ type EntrypointOnlyMetaJSON struct {
 
 // EvaluateExePath returns absolute ExePath except for local tarballs where it looks for side-by-side meta.json.
 func (m Module) EvaluateExePath() (string, error) {
-	if m.NeedsSyntheticPackage() {
-		metaPath := filepath.Join(filepath.Dir(m.ExePath), "meta.json")
+	if m.IsLocalTarball() {
+		metaPath := filepath.Join(filepath.Dir(m.RawExePath), "meta.json")
 		f, err := os.Open(metaPath) //nolint:gosec
 		if err != nil {
 			return "", errors.Wrap(err, "loading meta.json for local tarball")
@@ -151,11 +141,8 @@ func (m Module) EvaluateExePath() (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, "parsing meta.json for local tarball")
 		}
-		exeDir, err := m.syntheticPackageExeDir()
-		if err != nil {
-			return "", err
-		}
+		exeDir := m.PackagePathDets().LocalDataDirectory(viamPackagesDir)
 		return filepath.Abs(filepath.Join(exeDir, meta.Entrypoint))
 	}
-	return filepath.Abs(m.ExePath)
+	return filepath.Abs(m.RawExePath)
 }

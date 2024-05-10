@@ -152,8 +152,8 @@ func makeConfig(t *testing.T, logger logging.Logger) (string, int, error) {
 
 	cfg := config.Config{
 		Modules: []config.Module{{
-			Name:    "TestModule",
-			ExePath: modPath,
+			Name:       "TestModule",
+			RawExePath: modPath,
 		}},
 		Network: config.NetworkConfig{
 			NetworkConfigData: config.NetworkConfigData{

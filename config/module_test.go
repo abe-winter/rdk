@@ -12,34 +12,26 @@ import (
 func TestSyntheticModule(t *testing.T) {
 	tmp := t.TempDir()
 	modNeedsSynthetic := Module{
-		Type:    ModuleTypeLocal,
-		ExePath: filepath.Join(tmp, "whatever.tgz"),
+		Type:       ModuleTypeLocal,
+		RawExePath: filepath.Join(tmp, "whatever.tgz"),
 	}
 	modNotTar := Module{
-		Type:    ModuleTypeLocal,
-		ExePath: "/home/user/whatever.sh",
+		Type:       ModuleTypeLocal,
+		RawExePath: "/home/user/whatever.sh",
 	}
 	modNotLocal := Module{
 		Type: ModuleTypeRegistry,
 	}
 
 	t.Run("NeedsSyntheticPackage", func(t *testing.T) {
-		test.That(t, modNeedsSynthetic.NeedsSyntheticPackage(), test.ShouldBeTrue)
-		test.That(t, modNotTar.NeedsSyntheticPackage(), test.ShouldBeFalse)
-		test.That(t, modNotLocal.NeedsSyntheticPackage(), test.ShouldBeFalse)
+		test.That(t, modNeedsSynthetic.IsLocalTarball(), test.ShouldBeTrue)
+		test.That(t, modNotTar.IsLocalTarball(), test.ShouldBeFalse)
+		test.That(t, modNotLocal.IsLocalTarball(), test.ShouldBeFalse)
 	})
 
-	t.Run("SyntheticPackage", func(t *testing.T) {
-		_, err := modNeedsSynthetic.SyntheticPackage()
-		test.That(t, err, test.ShouldBeNil)
-		_, err = modNotLocal.SyntheticPackage()
-		test.That(t, err, test.ShouldNotBeNil)
-	})
-
-	t.Run("syntheticPackageExeDir", func(t *testing.T) {
-		dir, err := modNeedsSynthetic.syntheticPackageExeDir()
-		test.That(t, err, test.ShouldBeNil)
-		test.That(t, dir, test.ShouldEqual, filepath.Join(viamPackagesDir, "data/module/synthetic--"))
+	t.Run("PackagePathDets", func(t *testing.T) {
+		ppd := modNeedsSynthetic.PackagePathDets()
+		test.That(t, ppd.Type, test.ShouldEqual, ModuleTypeLocal)
 	})
 
 	t.Run("EvaluateExePath", func(t *testing.T) {
@@ -49,12 +41,12 @@ func TestSyntheticModule(t *testing.T) {
 		testWriteJSON(t, filepath.Join(tmp, "meta.json"), &meta)
 		syntheticPath, err := modNeedsSynthetic.EvaluateExePath()
 		test.That(t, err, test.ShouldBeNil)
-		exeDir, err := modNeedsSynthetic.syntheticPackageExeDir()
-		test.That(t, err, test.ShouldBeNil)
-		test.That(t, syntheticPath, test.ShouldEqual, filepath.Join(exeDir, meta.Entrypoint))
+		test.That(t, syntheticPath, test.ShouldEqual,
+			filepath.Join(modNeedsSynthetic.PackagePathDets().LocalDataDirectory(viamPackagesDir), meta.Entrypoint),
+		)
 		notTarPath, err := modNotTar.EvaluateExePath()
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, notTarPath, test.ShouldEqual, modNotTar.ExePath)
+		test.That(t, notTarPath, test.ShouldEqual, modNotTar.RawExePath)
 	})
 }
 

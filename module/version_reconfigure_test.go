@@ -25,9 +25,9 @@ func TestValidationFailureDuringReconfiguration(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:     "AcmeModule",
-				ExePath:  "multiversionmodule/run_version1.sh",
-				LogLevel: "debug",
+				Name:       "AcmeModule",
+				RawExePath: "multiversionmodule/run_version1.sh",
+				LogLevel:   "debug",
 			},
 		},
 		Components: []resource.Config{
@@ -70,7 +70,7 @@ func TestValidationFailureDuringReconfiguration(t *testing.T) {
 
 	// Read the config, swap to `run_version2.sh`, and overwrite the config, triggering a
 	// reconfigure where `generic1` will fail validation.
-	cfg.Modules[0].ExePath = utils.ResolveFile("module/multiversionmodule/run_version2.sh")
+	cfg.Modules[0].RawExePath = utils.ResolveFile("module/multiversionmodule/run_version2.sh")
 	robot.Reconfigure(ctx, cfg)
 
 	// Check that generic1 now has a config validation error.
@@ -97,9 +97,9 @@ func TestVersionBumpWithNewImplicitDeps(t *testing.T) {
 	cfg := &config.Config{
 		Modules: []config.Module{
 			{
-				Name:     "AcmeModule",
-				ExePath:  "multiversionmodule/run_version1.sh",
-				LogLevel: "debug",
+				Name:       "AcmeModule",
+				RawExePath: "multiversionmodule/run_version1.sh",
+				LogLevel:   "debug",
 			},
 		},
 		Components: []resource.Config{
@@ -142,7 +142,7 @@ func TestVersionBumpWithNewImplicitDeps(t *testing.T) {
 
 	// Swap in `run_version3.sh`. Version 3 requires `generic1` to have a `motor` in its
 	// attributes. This config change should result in `generic1` becoming unavailable.
-	cfg.Modules[0].ExePath = utils.ResolveFile("module/multiversionmodule/run_version3.sh")
+	cfg.Modules[0].RawExePath = utils.ResolveFile("module/multiversionmodule/run_version3.sh")
 	robot.Reconfigure(ctx, cfg)
 
 	_, err = robot.ResourceByName(generic.Named("generic1"))

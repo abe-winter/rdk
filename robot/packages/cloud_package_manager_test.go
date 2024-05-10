@@ -115,13 +115,13 @@ func TestCloud(t *testing.T) {
 		_, pm := newPackageManager(t, client, fakeServer, logger, "")
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 		pkgDir := pkg.LocalDataDirectory(pm.(*cloudManager).PackagesDir)
-		module := config.Module{ExePath: pkgDir + "/some-text.txt"}
+		module := config.Module{RawExePath: pkgDir + "/some-text.txt"}
 		fakeServer.StorePackage(pkg)
 		err = pm.Sync(ctx, []config.PackageConfig{pkg}, []config.Module{module})
 		test.That(t, err, test.ShouldBeNil)
 
 		// grab ModTime for comparison
-		info, err := os.Stat(module.ExePath)
+		info, err := os.Stat(module.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 		modTime := info.ModTime()
 
@@ -134,16 +134,16 @@ func TestCloud(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		err = pm.Sync(ctx, []config.PackageConfig{pkg}, []config.Module{module})
 		test.That(t, err, test.ShouldBeNil)
-		info, err = os.Stat(module.ExePath)
+		info, err = os.Stat(module.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, info.ModTime(), test.ShouldEqual, modTime)
 
 		// close previous package manager, then corrupt the module entrypoint file
 		pm.Close(ctx)
-		info, err = os.Stat(module.ExePath)
+		info, err = os.Stat(module.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, info.Size(), test.ShouldNotBeZeroValue)
-		err = os.Remove(module.ExePath)
+		err = os.Remove(module.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 
 		// create fresh packageManager to simulate a reboot, i.e. so the system doesn't think the module is already managed.
@@ -154,7 +154,7 @@ func TestCloud(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 
 		// test that file exists, is non-empty, and modTime is different
-		info, err = os.Stat(module.ExePath)
+		info, err = os.Stat(module.RawExePath)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, info.Size(), test.ShouldNotBeZeroValue)
 		test.That(t, info.ModTime(), test.ShouldNotEqual, modTime)
@@ -355,8 +355,8 @@ func TestDownloadFileCopy(t *testing.T) {
 			Name:    "test:synthetic",
 			Package: "test:synthetic",
 		},
-		LocalPath: "test_package.tar.gz",
 	}
+	exePath := "test_package.tar.gz"
 
 	fakeServer.StorePackage(remotePackage)
 
@@ -365,10 +365,6 @@ func TestDownloadFileCopy(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, url, test.ShouldStartWith, "http://127.0.0.1:")
 		test.That(t, url, test.ShouldEndWith, fmt.Sprintf("/download-file?id=%s&version=%s", remotePackage.Package, remotePackage.Version))
-
-		url, err = getPackageURL(ctx, logger, client, syntheticPackage)
-		test.That(t, err, test.ShouldBeNil)
-		test.That(t, url, test.ShouldEqual, "file://test_package.tar.gz")
 	})
 
 	t.Run("downloadPackage-synthetic", func(t *testing.T) {
@@ -378,9 +374,7 @@ func TestDownloadFileCopy(t *testing.T) {
 				PackagesDir: dstDir,
 			},
 		}
-		url, err := getPackageURL(ctx, logger, client, syntheticPackage)
-		test.That(t, err, test.ShouldBeNil)
-		err = cm.DownloadPackage(ctx, logger, url, syntheticPackage.PackagePathDets, []string{})
+		err = cm.DownloadPackage(ctx, logger, exePath, syntheticPackage.PackagePathDets, []string{})
 		test.That(t, err, test.ShouldBeNil)
 		dst := filepath.Join(
 			syntheticPackage.LocalDataDirectory(cm.PackagesDir),

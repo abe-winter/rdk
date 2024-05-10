@@ -128,11 +128,8 @@ func (m *cloudManager) Close(ctx context.Context) error {
 	return nil
 }
 
-// getPackageURL fetches package download URL from API, or creates a `file://` URL from pkg.LocalPath.
+// getPackageURL fetches package download URL from API.
 func getPackageURL(ctx context.Context, logger logging.Logger, client pb.PackageServiceClient, pkg config.PackageConfig) (string, error) {
-	if len(pkg.LocalPath) > 0 {
-		return fmt.Sprintf("%s%s", fileScheme, pkg.LocalPath), nil
-	}
 	packageType, err := config.PackageTypeToProto(pkg.Type)
 	if err != nil {
 		logger.Warnw("failed to get package type", "package", pkg.Name, "error", err)
@@ -199,7 +196,7 @@ func (m *cloudManager) Sync(ctx context.Context, packages []config.PackageConfig
 		if p.Type == config.PackageTypeModule {
 			matchedModules := m.modulesForPackage(p, modules)
 			if len(matchedModules) == 1 {
-				nonEmptyPaths = append(nonEmptyPaths, matchedModules[0].ExePath)
+				nonEmptyPaths = append(nonEmptyPaths, matchedModules[0].RawExePath)
 			}
 			if len(matchedModules) > 1 {
 				m.logger.CWarnf(ctx, "package %s matched %d > 1 modules, not doing entrypoint checking", p.Name, len(matchedModules))
@@ -241,7 +238,7 @@ func (m *cloudManager) modulesForPackage(pkg config.PackageConfig, modules []con
 	pkgDir := pkg.LocalDataDirectory(m.PackagesDir)
 	ret := make([]config.Module, 0, 1)
 	for _, module := range modules {
-		if strings.HasPrefix(module.ExePath, pkgDir) {
+		if strings.HasPrefix(module.RawExePath, pkgDir) {
 			ret = append(ret, module)
 		}
 	}

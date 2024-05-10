@@ -1018,8 +1018,6 @@ type PackageConfig struct {
 	PackagePathDets
 
 	Status *AppValidationStatus `json:"status,omitempty"`
-	// localPath is a non-json field that sources the package from a file path instead of a URL.
-	LocalPath string
 
 	alreadyValidated bool
 	cachedErr        error
@@ -1077,7 +1075,7 @@ func (p PackageConfig) Equals(other PackageConfig) bool {
 
 // LocalDataDirectory returns the folder where the package should be extracted.
 // Ex: /home/user/.viam/packages/data/ml_model/orgid_ballClassifier_0.1.2.
-func (p *PackagePathDets) LocalDataDirectory(packagesDir string) string {
+func (p PackagePathDets) LocalDataDirectory(packagesDir string) string {
 	return filepath.Join(p.LocalDataParentDirectory(packagesDir), p.SanitizedName())
 }
 

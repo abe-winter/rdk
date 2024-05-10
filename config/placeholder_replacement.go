@@ -57,7 +57,7 @@ func (c *Config) ReplacePlaceholders() error {
 	}
 
 	for i, module := range c.Modules {
-		c.Modules[i].ExePath, err = visitor.replacePlaceholders(module.ExePath)
+		c.Modules[i].RawExePath, err = visitor.replacePlaceholders(module.RawExePath)
 		allErrs = multierr.Append(allErrs, err)
 		for envName, envVal := range module.Environment {
 			c.Modules[i].Environment[envName], err = visitor.replacePlaceholders(envVal)
