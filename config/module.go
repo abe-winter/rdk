@@ -129,7 +129,7 @@ type EntrypointOnlyMetaJSON struct {
 }
 
 // EvaluateExePath returns absolute ExePath except for local tarballs where it looks for side-by-side meta.json.
-func (m Module) EvaluateExePath() (string, error) {
+func (m Module) EvaluateExePath(packagesDir string) (string, error) {
 	if m.IsLocalTarball() {
 		metaPath := filepath.Join(filepath.Dir(m.RawExePath), "meta.json")
 		f, err := os.Open(metaPath) //nolint:gosec
@@ -141,8 +141,9 @@ func (m Module) EvaluateExePath() (string, error) {
 		if err != nil {
 			return "", errors.Wrap(err, "parsing meta.json for local tarball")
 		}
-		exeDir := m.PackagePathDets().LocalDataDirectory(viamPackagesDir)
+		exeDir := m.PackagePathDets().LocalDataDirectory(packagesDir)
 		return filepath.Abs(filepath.Join(exeDir, meta.Entrypoint))
+
 	}
 	return filepath.Abs(m.RawExePath)
 }

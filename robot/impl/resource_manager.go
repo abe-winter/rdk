@@ -949,7 +949,7 @@ func (manager *resourceManager) updateResources(
 
 	// modules are not added into the resource tree as they belong to the module manager
 	if conf.Added.Modules != nil {
-		if err := manager.moduleManager.Add(ctx, conf.Added.Modules...); err != nil {
+		if err := manager.moduleManager.Add(ctx, conf.Right.PackagePath, conf.Added.Modules...); err != nil {
 			manager.logger.CErrorw(ctx, "error adding modules", "error", err)
 		}
 	}
@@ -960,7 +960,7 @@ func (manager *resourceManager) updateResources(
 			manager.logger.CErrorw(ctx, "module config validation error; skipping", "module", mod.Name, "error", err)
 			continue
 		}
-		orphanedResourceNames, err := manager.moduleManager.Reconfigure(ctx, mod)
+		orphanedResourceNames, err := manager.moduleManager.Reconfigure(ctx, conf.Right.PackagePath, mod)
 		if err != nil {
 			manager.logger.CErrorw(ctx, "error reconfiguring module", "module", mod.Name, "error", err)
 		}

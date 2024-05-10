@@ -64,7 +64,6 @@ func NewManager(
 		removeOrphanedResources: options.RemoveOrphanedResources,
 		restartCtx:              restartCtx,
 		restartCtxCancel:        restartCtxCancel,
-		packagePath:             options.PackagePath,
 	}
 }
 
@@ -154,7 +153,6 @@ type Manager struct {
 	// viamHomeDir is the absolute path to the viam home directory. Ex: /home/walle/.viam
 	// `viamHomeDir` may only be the empty string in testing
 	viamHomeDir string
-	packagePath string
 	// moduleDataParentDir is the absolute path to the current robots module data directory.
 	// Ex: /home/walle/.viam/module-data/<cloud-robot-id>
 	// it is empty if the modmanageroptions.Options.viamHomeDir was empty
@@ -199,7 +197,7 @@ func (mgr *Manager) Handles() map[string]modlib.HandlerMap {
 //
 // Each module configuration should have a unique name - if duplicate names are detected,
 // then only the first duplicate instance will be processed and the rest will be ignored.
-func (mgr *Manager) Add(ctx context.Context, confs ...config.Module) error {
+func (mgr *Manager) Add(ctx context.Context, packagesDir string, confs ...config.Module) error {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -231,7 +229,7 @@ func (mgr *Manager) Add(ctx context.Context, confs ...config.Module) error {
 			defer wg.Done()
 
 			mgr.logger.CInfow(ctx, "Now adding module", "module", conf.Name)
-			err := mgr.add(ctx, conf)
+			err := mgr.add(ctx, packagesDir, conf)
 			if err != nil {
 				mgr.logger.CErrorw(ctx, "Error adding module", "module", conf.Name, "error", err)
 				errs[i] = err
@@ -253,7 +251,7 @@ func (mgr *Manager) Add(ctx context.Context, confs ...config.Module) error {
 }
 
 // add starts a single module's subprocess, does directory setup, waits for ready, does resource registration.
-func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
+func (mgr *Manager) add(ctx context.Context, packagesDir string, conf config.Module) error {
 	_, exists := mgr.modules.Load(conf.Name)
 	if exists {
 		mgr.logger.CWarnw(ctx, "Not adding module that already exists", "module", conf.Name)
@@ -274,7 +272,7 @@ func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
 	if conf.IsLocalTarball() {
 		mgr.logger.Debugw("copying local tarball", "path", conf.RawExePath)
 		downloader := packages.PackageDownloader{
-			PackagesDir: mgr.packagePath,
+			PackagesDir: packagesDir,
 		}
 		err := downloader.DownloadPackage(ctx, mgr.logger, packages.FileScheme+conf.RawExePath, conf.PackagePathDets(), []string{})
 		if err != nil {
@@ -289,23 +287,24 @@ func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
 		logger:    mgr.logger.Sublogger(conf.Name),
 	}
 
-	if err := mgr.startModule(ctx, mod); err != nil {
+	if err := mgr.startModule(ctx, packagesDir, mod); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (mgr *Manager) startModuleProcess(mod *module) error {
+func (mgr *Manager) startModuleProcess(packagesDir string, mod *module) error {
 	return mod.startProcess(
 		mgr.restartCtx,
+		packagesDir,
 		mgr.parentAddr,
-		mgr.newOnUnexpectedExitHandler(mod),
+		mgr.newOnUnexpectedExitHandler(packagesDir, mod),
 		mgr.logger,
 		mgr.viamHomeDir,
 	)
 }
 
-func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
+func (mgr *Manager) startModule(ctx context.Context, packagesDir string, mod *module) error {
 	// add calls startProcess, which can also be called by the OUE handler in the attemptRestart
 	// call. Both of these involve owning a lock, so in unhappy cases of malformed modules
 	// this can lead to a deadlock. To prevent this, we set inStartup here to indicate to
@@ -332,7 +331,7 @@ func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
 		ctx, "Waiting for module to complete startup and registration", "module", mod.cfg.Name, mgr.logger)
 	defer cleanup()
 
-	if err := mgr.startModuleProcess(mod); err != nil {
+	if err := mgr.startModuleProcess(packagesDir, mod); err != nil {
 		return errors.WithMessage(err, "error while starting module "+mod.cfg.Name)
 	}
 
@@ -353,7 +352,7 @@ func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
 
 // Reconfigure reconfigures an existing resource module and returns the names of
 // now orphaned resources.
-func (mgr *Manager) Reconfigure(ctx context.Context, conf config.Module) ([]resource.Name, error) {
+func (mgr *Manager) Reconfigure(ctx context.Context, packagesDir string, conf config.Module) ([]resource.Name, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 	mod, exists := mgr.modules.Load(conf.Name)
@@ -381,7 +380,7 @@ func (mgr *Manager) Reconfigure(ctx context.Context, conf config.Module) ([]reso
 
 	mgr.logger.CInfow(ctx, "Existing module process stopped. Starting new module process", "module", conf.Name)
 
-	if err := mgr.startModule(ctx, mod); err != nil {
+	if err := mgr.startModule(ctx, packagesDir, mod); err != nil {
 		// If re-addition fails, assume all handled resources are orphaned.
 		return handledResourceNames, err
 	}
@@ -790,7 +789,7 @@ var oueRestartInterval = 5 * time.Second
 
 // newOnUnexpectedExitHandler returns the appropriate OnUnexpectedExit function
 // for the passed-in module to include in the pexec.ProcessConfig.
-func (mgr *Manager) newOnUnexpectedExitHandler(mod *module) func(exitCode int) bool {
+func (mgr *Manager) newOnUnexpectedExitHandler(packagesDir string, mod *module) func(exitCode int) bool {
 	return func(exitCode int) bool {
 		mod.inRecoveryLock.Lock()
 		defer mod.inRecoveryLock.Unlock()
@@ -815,7 +814,7 @@ func (mgr *Manager) newOnUnexpectedExitHandler(mod *module) func(exitCode int) b
 		// and we should remove orphaned resources. Since we handle process
 		// restarting ourselves, return false here so goutils knows not to attempt
 		// a process restart.
-		if orphanedResourceNames := mgr.attemptRestart(mgr.restartCtx, mod); orphanedResourceNames != nil {
+		if orphanedResourceNames := mgr.attemptRestart(mgr.restartCtx, packagesDir, mod); orphanedResourceNames != nil {
 			if mgr.removeOrphanedResources != nil {
 				mgr.removeOrphanedResources(mgr.restartCtx, orphanedResourceNames)
 			}
@@ -847,7 +846,7 @@ func (mgr *Manager) newOnUnexpectedExitHandler(mod *module) func(exitCode int) b
 
 // attemptRestart will attempt to restart the module up to three times and
 // return the names of now orphaned resources.
-func (mgr *Manager) attemptRestart(ctx context.Context, mod *module) []resource.Name {
+func (mgr *Manager) attemptRestart(ctx context.Context, packagesDir string, mod *module) []resource.Name {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -894,7 +893,7 @@ func (mgr *Manager) attemptRestart(ctx context.Context, mod *module) []resource.
 
 	// Attempt to restart module process 3 times.
 	for attempt := 1; attempt < 4; attempt++ {
-		if err := mgr.startModuleProcess(mod); err != nil {
+		if err := mgr.startModuleProcess(packagesDir, mod); err != nil {
 			mgr.logger.Errorw("Error while restarting crashed module", "restart attempt",
 				attempt, "module", mod.cfg.Name, "error", err)
 			if attempt == 3 {
@@ -1013,6 +1012,7 @@ func (m *module) checkReady(ctx context.Context, parentAddr string, logger loggi
 
 func (m *module) startProcess(
 	ctx context.Context,
+	packagesDir string,
 	parentAddr string,
 	oue func(int) bool,
 	logger logging.Logger,
@@ -1028,7 +1028,7 @@ func (m *module) startProcess(
 
 	// We evaluate the Module's ExePath absolutely in the viam-server process so that
 	// setting the CWD does not cause issues with relative process names
-	absoluteExePath, err := m.cfg.EvaluateExePath()
+	absoluteExePath, err := m.cfg.EvaluateExePath(packagesDir)
 	if err != nil {
 		return err
 	}
