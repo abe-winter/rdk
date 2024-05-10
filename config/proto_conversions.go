@@ -887,11 +887,13 @@ func PackageConfigFromProto(proto *pb.PackageConfig) (*PackageConfig, error) {
 	}
 
 	return &PackageConfig{
-		Name:    proto.Name,
-		Package: proto.Package,
-		Version: proto.Version,
-		Type:    PackageType(proto.Type),
-		Status:  status,
+		PackagePathDets: PackagePathDets{
+			Name:    proto.Name,
+			Package: proto.Package,
+			Version: proto.Version,
+			Type:    PackageType(proto.Type),
+		},
+		Status: status,
 	}, nil
 }
 

@@ -199,10 +199,12 @@ var testModuleWithError = Module{
 }
 
 var testPackageConfig = PackageConfig{
-	Name:    "package-name",
-	Package: "some/package",
-	Version: "v1",
-	Type:    PackageTypeModule,
+	PackagePathDets: PackagePathDets{
+		Name:    "package-name",
+		Package: "some/package",
+		Version: "v1",
+		Type:    PackageTypeModule,
+	},
 }
 
 var (
@@ -246,10 +248,12 @@ func TestPackageConfigConversions(t *testing.T) {
 
 	// test package with error
 	pckWithErr := &PackageConfig{
-		Name:    "testErr",
-		Package: "package/test/me",
-		Version: "1.0.0",
-		Type:    PackageTypeMlModel,
+		PackagePathDets: PackagePathDets{
+			Name:    "testErr",
+			Package: "package/test/me",
+			Version: "1.0.0",
+			Type:    PackageTypeMlModel,
+		},
 		Status: &AppValidationStatus{
 			Error: "help me error!",
 		},

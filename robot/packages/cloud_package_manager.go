@@ -45,15 +45,20 @@ type managedPackage struct {
 	modtime    time.Time
 }
 
+// PackageDownloader has information you need to download packages.
+type PackageDownloader struct {
+	PackagesDir string
+	HTTPClient  http.Client
+	CloudConfig config.Cloud
+}
+
 type cloudManager struct {
 	resource.Named
+	PackageDownloader
 	// we assume the config is immutable for the lifetime of the process
 	resource.TriviallyReconfigurable
 	client          pb.PackageServiceClient
-	httpClient      http.Client
 	packagesDataDir string
-	packagesDir     string
-	cloudConfig     config.Cloud
 
 	managedPackages map[PackageName]*managedPackage
 	mu              sync.RWMutex
@@ -88,11 +93,13 @@ func NewCloudManager(
 	}
 
 	return &cloudManager{
-		Named:           InternalServiceName.AsNamed(),
-		client:          client,
-		httpClient:      http.Client{Timeout: time.Minute * 30},
-		cloudConfig:     *cloudConfig,
-		packagesDir:     packagesDir,
+		Named:  InternalServiceName.AsNamed(),
+		client: client,
+		PackageDownloader: PackageDownloader{
+			HTTPClient:  http.Client{Timeout: time.Minute * 30},
+			CloudConfig: *cloudConfig,
+			PackagesDir: packagesDir,
+		},
 		packagesDataDir: packagesDataDir,
 		managedPackages: make(map[PackageName]*managedPackage),
 		logger:          logger.Sublogger("package_manager"),
@@ -109,7 +116,7 @@ func (m *cloudManager) PackagePath(name PackageName) (string, error) {
 		return "", ErrPackageMissing
 	}
 
-	return p.thePackage.LocalDataDirectory(m.packagesDir), nil
+	return p.thePackage.LocalDataDirectory(m.PackagesDir), nil
 }
 
 // Close manager.
@@ -117,7 +124,7 @@ func (m *cloudManager) Close(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.httpClient.CloseIdleConnections()
+	m.HTTPClient.CloseIdleConnections()
 	return nil
 }
 
@@ -200,7 +207,7 @@ func (m *cloudManager) Sync(ctx context.Context, packages []config.PackageConfig
 		}
 
 		// download package from a http endpoint, or copy from p.LocalPath if synthetic
-		err = m.downloadPackage(ctx, packageURL, p, nonEmptyPaths)
+		err = m.DownloadPackage(ctx, m.logger, packageURL, p.PackagePathDets, nonEmptyPaths)
 		if err != nil {
 			m.logger.Errorf("Failed downloading package %s:%s from %s, %s", p.Package, p.Version, sanitizeURLForLogs(packageURL), err)
 			outErr = multierr.Append(outErr, errors.Wrapf(err, "failed downloading package %s:%s from %s",
@@ -231,7 +238,7 @@ func (m *cloudManager) Sync(ctx context.Context, packages []config.PackageConfig
 // modulesForPackage returns module(s) whose ExePath is in the package's directory.
 // TODO: This only works if you call it after placeholder replacement. Find a cleaner way to express this link.
 func (m *cloudManager) modulesForPackage(pkg config.PackageConfig, modules []config.Module) []config.Module {
-	pkgDir := pkg.LocalDataDirectory(m.packagesDir)
+	pkgDir := pkg.LocalDataDirectory(m.PackagesDir)
 	ret := make([]config.Module, 0, 1)
 	for _, module := range modules {
 		if strings.HasPrefix(module.ExePath, pkgDir) {
@@ -282,7 +289,7 @@ func (m *cloudManager) Cleanup(ctx context.Context) error {
 
 	expectedPackageDirectories := map[string]bool{}
 	for _, pkg := range m.managedPackages {
-		expectedPackageDirectories[pkg.thePackage.LocalDataDirectory(m.packagesDir)] = true
+		expectedPackageDirectories[pkg.thePackage.LocalDataDirectory(m.PackagesDir)] = true
 	}
 
 	topLevelFiles, err := os.ReadDir(m.packagesDataDir)
@@ -338,12 +345,12 @@ func (m *cloudManager) Cleanup(ctx context.Context) error {
 // symlink packages/package-name to packages/data/ml_model/orgid-package-name-ver for backwards compatibility
 // TODO(RSDK-4386) Preserved for backwards compatibility. Could be removed or extended to other types in the future.
 func (m *cloudManager) mLModelSymlinkCreation(p config.PackageConfig) error {
-	symlinkPath, err := safeJoin(m.packagesDir, p.Name)
+	symlinkPath, err := safeJoin(m.PackagesDir, p.Name)
 	if err != nil {
 		return err
 	}
 
-	if err := linkFile(p.LocalDataDirectory(m.packagesDir), symlinkPath); err != nil {
+	if err := linkFile(p.LocalDataDirectory(m.PackagesDir), symlinkPath); err != nil {
 		return errors.Wrapf(err, "failed linking ml_model package %s:%s, %s", p.Package, p.Version, err)
 	}
 	return nil
@@ -353,7 +360,7 @@ func (m *cloudManager) mLModelSymlinkCreation(p config.PackageConfig) error {
 // TODO(RSDK-4386) Preserved for backwards compatibility. Could be removed or extended to other types in the future.
 func (m *cloudManager) mlModelSymlinkCleanup() error {
 	var allErrors error
-	files, err := os.ReadDir(m.packagesDir)
+	files, err := os.ReadDir(m.PackagesDir)
 	if err != nil {
 		return err
 	}
@@ -370,7 +377,7 @@ func (m *cloudManager) mlModelSymlinkCleanup() error {
 
 		m.logger.Infof("Cleaning up unused package link %s", f.Name())
 
-		symlinkPath, err := safeJoin(m.packagesDir, f.Name())
+		symlinkPath, err := safeJoin(m.PackagesDir, f.Name())
 		if err != nil {
 			allErrors = multierr.Append(allErrors, err)
 			continue
@@ -396,59 +403,62 @@ func sanitizeURLForLogs(u string) string {
 // This exists because we have no way to check the integrity of modules *after* they've been unpacked.
 // (We do look at checksums of downloaded tarballs, though). Once we have a better integrity check
 // system for unpacked modules, this should be removed.
-func checkNonemptyPaths(packageName string, logger logging.Logger, absPaths []string) bool {
+func checkNonemptyPaths(packageString string, logger logging.Logger, absPaths []string) bool {
 	missingOrEmpty := 0
 	for _, nePath := range absPaths {
 		if !path.IsAbs(nePath) {
 			// note: we expect paths to be absolute in most cases.
 			// We're okay not having corrupted files coverage for relative paths, and prefer it to
 			// risking a re-download loop from an edge case.
-			logger.Debugw("ignoring non-abs required path", "path", nePath, "package", packageName)
+			logger.Debugw("ignoring non-abs required path", "path", nePath, "package", packageString)
 			continue
 		}
 		// note: os.Stat treats symlinks as their destination. os.Lstat would stat the link itself.
 		info, err := os.Stat(nePath)
 		if err != nil {
 			if !os.IsNotExist(err) {
-				logger.Warnw("ignoring non-NotExist error for required path", "path", nePath, "package", packageName, "error", err.Error())
+				logger.Warnw("ignoring non-NotExist error for required path", "path", nePath, "package", packageString, "error", err.Error())
 			} else {
-				logger.Warnw("a required path is missing, re-downloading", "path", nePath, "package", packageName)
+				logger.Warnw("a required path is missing, re-downloading", "path", nePath, "package", packageString)
 				missingOrEmpty++
 			}
 		} else if info.Size() == 0 {
 			missingOrEmpty++
-			logger.Warnw("a required path is empty, re-downloading", "path", nePath, "package", packageName)
+			logger.Warnw("a required path is empty, re-downloading", "path", nePath, "package", packageString)
 		}
 	}
 	return missingOrEmpty == 0
 }
 
-func (m *cloudManager) downloadPackage(ctx context.Context, url string, p config.PackageConfig, nonEmptyPaths []string) error {
-	if dataDir := p.LocalDataDirectory(m.packagesDir); dirExists(dataDir) {
-		if checkNonemptyPaths(p.Name, m.logger, nonEmptyPaths) {
-			m.logger.Debugf("Package already downloaded at %s, skipping.", dataDir)
+// DownloadPackage downloads a package (or copies it if local), unpacks it, and does cleanup tasks.
+func (d *PackageDownloader) DownloadPackage(
+	ctx context.Context, logger logging.Logger, url string, p config.PackagePathDets, nonEmptyPaths []string,
+) error {
+	if dataDir := p.LocalDataDirectory(d.PackagesDir); dirExists(dataDir) {
+		if checkNonemptyPaths(p.Package, logger, nonEmptyPaths) {
+			logger.Debugf("Package already downloaded at %s, skipping.", dataDir)
 			return nil
 		}
 	}
 
 	// Create the parent directory for the package type if it doesn't exist
-	if err := os.MkdirAll(p.LocalDataParentDirectory(m.packagesDir), 0o700); err != nil {
+	if err := os.MkdirAll(p.LocalDataParentDirectory(d.PackagesDir), 0o700); err != nil {
 		return err
 	}
 
 	// Delete legacy directory, silently fail if the cleanup fails
 	// This can be cleaned up after a few RDK releases (APP-4066)
-	if err := os.RemoveAll(p.LocalLegacyDataRootDirectory(m.packagesDir)); err != nil {
+	if err := os.RemoveAll(p.LocalLegacyDataRootDirectory(d.PackagesDir)); err != nil {
 		utils.UncheckedError(err)
 	}
 
 	// Force redownload of package archive.
-	if err := m.cleanup(p); err != nil {
-		m.logger.Debug(err)
+	if err := d.cleanupDownload(p); err != nil {
+		logger.Debug(err)
 	}
 
 	if p.Type == config.PackageTypeMlModel {
-		symlinkPath, err := safeJoin(m.packagesDir, p.Name)
+		symlinkPath, err := safeJoin(d.PackagesDir, p.Name)
 		if err == nil {
 			if err := os.Remove(symlinkPath); err != nil {
 				utils.UncheckedError(err)
@@ -457,7 +467,7 @@ func (m *cloudManager) downloadPackage(ctx context.Context, url string, p config
 	}
 
 	var contentType string
-	dstPath := p.LocalDownloadPath(m.packagesDir)
+	dstPath := p.LocalDownloadPath(d.PackagesDir)
 	if pathOnly, found := strings.CutPrefix(url, fileScheme); found {
 		// this branch does local copy for file:// URIs
 		src, err := os.Open(pathOnly) //nolint:gosec
@@ -474,25 +484,25 @@ func (m *cloudManager) downloadPackage(ctx context.Context, url string, p config
 		if err != nil {
 			return err
 		}
-		m.logger.Debugf("copied %d bytes to %s", nBytes, dstPath)
+		logger.Debugf("copied %d bytes to %s", nBytes, dstPath)
 		// note: we're relying on the assumption that this is a synthetic package which passed tarballExtensionsRegexp
 		contentType = allowedContentType
 	} else {
 		var err error
 		// Download from GCS
-		_, contentType, err = m.downloadFileFromGCSURL(ctx, url, dstPath, m.cloudConfig.ID, m.cloudConfig.Secret)
+		_, contentType, err = d.downloadFileFromGCSURL(ctx, url, dstPath)
 		if err != nil {
 			return err
 		}
 	}
 
 	if contentType != allowedContentType {
-		utils.UncheckedError(m.cleanup(p))
+		utils.UncheckedError(d.cleanupDownload(p))
 		return fmt.Errorf("unknown content-type for package %s", contentType)
 	}
 
 	// unpack to temp directory to ensure we do an atomic rename once finished.
-	tmpDataPath, err := os.MkdirTemp(p.LocalDataParentDirectory(m.packagesDir), "*.tmp")
+	tmpDataPath, err := os.MkdirTemp(p.LocalDataParentDirectory(d.PackagesDir), "*.tmp")
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp data dir path")
 	}
@@ -500,52 +510,50 @@ func (m *cloudManager) downloadPackage(ctx context.Context, url string, p config
 	defer func() {
 		// cleanup archive file.
 		if err := os.Remove(dstPath); err != nil {
-			m.logger.Debug(err)
+			logger.Debug(err)
 		}
 		if err := os.RemoveAll(tmpDataPath); err != nil {
-			m.logger.Debug(err)
+			logger.Debug(err)
 		}
 	}()
 
 	// unzip archive.
 	err = unpackFile(ctx, dstPath, tmpDataPath)
 	if err != nil {
-		utils.UncheckedError(m.cleanup(p))
+		utils.UncheckedError(d.cleanupDownload(p))
 		return err
 	}
 
-	err = os.Rename(tmpDataPath, p.LocalDataDirectory(m.packagesDir))
+	err = os.Rename(tmpDataPath, p.LocalDataDirectory(d.PackagesDir))
 	if err != nil {
-		utils.UncheckedError(m.cleanup(p))
+		utils.UncheckedError(d.cleanupDownload(p))
 		return err
 	}
 
 	return nil
 }
 
-func (m *cloudManager) cleanup(p config.PackageConfig) error {
+func (d *PackageDownloader) cleanupDownload(p config.PackagePathDets) error {
 	return multierr.Combine(
-		os.RemoveAll(p.LocalDataDirectory(m.packagesDir)),
-		os.Remove(p.LocalDownloadPath(m.packagesDir)),
+		os.RemoveAll(p.LocalDataDirectory(d.PackagesDir)),
+		os.Remove(p.LocalDownloadPath(d.PackagesDir)),
 	)
 }
 
-func (m *cloudManager) downloadFileFromGCSURL(
+func (d *PackageDownloader) downloadFileFromGCSURL(
 	ctx context.Context,
 	url string,
 	downloadPath string,
-	partID string,
-	partSecret string,
 ) (string, string, error) {
 	getReq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	getReq.Header.Add("part_id", partID)
-	getReq.Header.Add("secret", partSecret)
+	getReq.Header.Add("part_id", d.CloudConfig.ID)
+	getReq.Header.Add("secret", d.CloudConfig.Secret)
 	if err != nil {
 		return "", "", err
 	}
 
 	//nolint:bodyclose /// closed in UncheckedErrorFunc
-	resp, err := m.httpClient.Do(getReq)
+	resp, err := d.HTTPClient.Do(getReq)
 	if err != nil {
 		return "", "", err
 	}

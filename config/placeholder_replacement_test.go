@@ -45,16 +45,20 @@ func TestPlaceholderReplacement(t *testing.T) {
 			},
 			Packages: []config.PackageConfig{
 				{
-					Name:    "coolpkg",
-					Package: "orgid/pkg",
-					Type:    "ml_model",
-					Version: "0.4.0",
+					PackagePathDets: config.PackagePathDets{
+						Name:    "coolpkg",
+						Package: "orgid/pkg",
+						Type:    "ml_model",
+						Version: "0.4.0",
+					},
 				},
 				{
-					Name:    "coolmod",
-					Package: "orgid/mod",
-					Type:    "module",
-					Version: "0.5.0",
+					PackagePathDets: config.PackagePathDets{
+						Name:    "coolmod",
+						Package: "orgid/mod",
+						Type:    "module",
+						Version: "0.5.0",
+					},
 				},
 			},
 		}
@@ -133,10 +137,12 @@ func TestPlaceholderReplacement(t *testing.T) {
 			},
 			Packages: []config.PackageConfig{
 				{
-					Name:    "chicken",
-					Package: "orgid/pkg",
-					Type:    "module",
-					Version: "0.4.0",
+					PackagePathDets: config.PackagePathDets{
+						Name:    "chicken",
+						Package: "orgid/pkg",
+						Type:    "module",
+						Version: "0.4.0",
+					},
 				},
 			},
 		}
@@ -154,10 +160,12 @@ func TestPlaceholderReplacement(t *testing.T) {
 			},
 			Packages: []config.PackageConfig{
 				{
-					Name:    "chicken",
-					Package: "orgid/pkg",
-					Type:    "module",
-					Version: "0.4.0",
+					PackagePathDets: config.PackagePathDets{
+						Name:    "chicken",
+						Package: "orgid/pkg",
+						Type:    "module",
+						Version: "0.4.0",
+					},
 				},
 			},
 		}

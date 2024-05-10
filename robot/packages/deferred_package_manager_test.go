@@ -79,17 +79,21 @@ func TestDeferredPackageManager(t *testing.T) {
 	}
 
 	pkgA := config.PackageConfig{
-		Name:    "some-name",
-		Package: "org1/test-model",
-		Version: "v1",
-		Type:    "ml_model",
+		PackagePathDets: config.PackagePathDets{
+			Name:    "some-name",
+			Package: "org1/test-model",
+			Version: "v1",
+			Type:    "ml_model",
+		},
 	}
 
 	pkgB := config.PackageConfig{
-		Name:    "some-name-2",
-		Package: "org1/test-model-2",
-		Version: "v2",
-		Type:    "module",
+		PackagePathDets: config.PackagePathDets{
+			Name:    "some-name-2",
+			Package: "org1/test-model-2",
+			Version: "v2",
+			Type:    "module",
+		},
 	}
 
 	t.Run("getManagerForSync async", func(t *testing.T) {

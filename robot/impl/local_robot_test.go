@@ -1724,9 +1724,11 @@ func TestConfigPackages(t *testing.T) {
 	robotConfig := &config.Config{
 		Packages: []config.PackageConfig{
 			{
-				Name:    "some-name-1",
-				Package: "package-1",
-				Version: "v1",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "some-name-1",
+					Package: "package-1",
+					Version: "v1",
+				},
 			},
 		},
 		Cloud: &config.Cloud{
@@ -1743,16 +1745,20 @@ func TestConfigPackages(t *testing.T) {
 	robotConfig2 := &config.Config{
 		Packages: []config.PackageConfig{
 			{
-				Name:    "some-name-1",
-				Package: "package-1",
-				Version: "v1",
-				Type:    "ml_model",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "some-name-1",
+					Package: "package-1",
+					Version: "v1",
+					Type:    "ml_model",
+				},
 			},
 			{
-				Name:    "some-name-2",
-				Package: "package-2",
-				Version: "v2",
-				Type:    "ml_model",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "some-name-2",
+					Package: "package-2",
+					Version: "v2",
+					Type:    "ml_model",
+				},
 			},
 		},
 		Cloud: &config.Cloud{
@@ -1895,9 +1901,11 @@ func TestConfigMethod(t *testing.T) {
 		},
 		Packages: []config.PackageConfig{
 			{
-				Name:    "some-name-1",
-				Package: "package-1",
-				Version: "v1",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "some-name-1",
+					Package: "package-1",
+					Version: "v1",
+				},
 			},
 		},
 		Network:             config.NetworkConfig{},
@@ -3381,7 +3389,7 @@ func TestMakeNormalAndSyntheticPackages(t *testing.T) {
 	logger := logging.NewTestLogger(t)
 	conf := config.Config{
 		Packages: []config.PackageConfig{
-			{Name: "normal", Package: "normal"},
+			{PackagePathDets: config.PackagePathDets{Name: "normal", Package: "normal"}},
 		},
 		Modules: []config.Module{
 			{Name: "yes-tar", Type: config.ModuleTypeLocal, ExePath: "whatever.tar.gz"},

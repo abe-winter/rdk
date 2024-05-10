@@ -1001,16 +1001,21 @@ const (
 // SupportedPackageTypes is a list of all of the valid package types.
 var SupportedPackageTypes = []PackageType{PackageTypeMlModel, PackageTypeModule, PackageTypeSlamMap}
 
-// A PackageConfig describes the configuration of a Package.
-type PackageConfig struct {
+// PackagePathDets contains the fields of PackageConfig that are used for generating paths.
+type PackagePathDets struct {
 	// Name is the local name of the package on the RDK. Must be unique across Packages. Must not be empty.
 	Name string `json:"name"`
-	// Package is the unqiue package name hosted by a remote PackageService. Must not be empty.
+	// Package is the unique package name hosted by a remote PackageService. Must not be empty.
 	Package string `json:"package"`
 	// Version of the package ID hosted by a remote PackageService. If not specified "latest" is assumed.
 	Version string `json:"version,omitempty"`
 	// Types of the Package.
 	Type PackageType `json:"type"`
+}
+
+// A PackageConfig describes the configuration of a Package.
+type PackageConfig struct {
+	PackagePathDets
 
 	Status *AppValidationStatus `json:"status,omitempty"`
 	// localPath is a non-json field that sources the package from a file path instead of a URL.
@@ -1072,35 +1077,35 @@ func (p PackageConfig) Equals(other PackageConfig) bool {
 
 // LocalDataDirectory returns the folder where the package should be extracted.
 // Ex: /home/user/.viam/packages/data/ml_model/orgid_ballClassifier_0.1.2.
-func (p *PackageConfig) LocalDataDirectory(packagesDir string) string {
+func (p *PackagePathDets) LocalDataDirectory(packagesDir string) string {
 	return filepath.Join(p.LocalDataParentDirectory(packagesDir), p.SanitizedName())
 }
 
 // LocalDownloadPath returns the file where the archive should be downloaded before extraction.
-func (p *PackageConfig) LocalDownloadPath(packagesDir string) string {
+func (p *PackagePathDets) LocalDownloadPath(packagesDir string) string {
 	return filepath.Join(p.LocalDataParentDirectory(packagesDir), fmt.Sprintf("%s.download", p.SanitizedName()))
 }
 
 // LocalDataParentDirectory returns the folder that will contain the all packages of this type.
 // Ex: /home/user/.viam/packages/data/ml_model.
-func (p *PackageConfig) LocalDataParentDirectory(packagesDir string) string {
+func (p *PackagePathDets) LocalDataParentDirectory(packagesDir string) string {
 	return filepath.Join(packagesDir, "data", string(p.Type))
 }
 
 // LocalLegacyDataRootDirectory returns the old private directory.
 // This can be cleaned up after a few RDK releases (APP-4066)
 // Ex: /home/user/.viam/packages/.data/.
-func (p *PackageConfig) LocalLegacyDataRootDirectory(packagesDir string) string {
+func (p *PackagePathDets) LocalLegacyDataRootDirectory(packagesDir string) string {
 	return filepath.Join(packagesDir, ".data")
 }
 
 // SanitizedName returns the package name for the symlink/filepath of the package on the system.
-func (p *PackageConfig) SanitizedName() string {
+func (p *PackagePathDets) SanitizedName() string {
 	return fmt.Sprintf("%s-%s", strings.ReplaceAll(p.Package, string(os.PathSeparator), "-"), p.sanitizedVersion())
 }
 
 // sanitizedVersion returns a cleaned version of the version so it is file-system-safe.
-func (p *PackageConfig) sanitizedVersion() string {
+func (p *PackagePathDets) sanitizedVersion() string {
 	// replaces all the . if they exist with _
 	return strings.ReplaceAll(p.Version, ".", "_")
 }

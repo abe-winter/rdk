@@ -60,7 +60,9 @@ func TestCloud(t *testing.T) {
 		packageDir, pm := newPackageManager(t, client, fakeServer, logger, "")
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
-		input := []config.PackageConfig{{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}}
+		input := []config.PackageConfig{
+			{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+		}
 		err = pm.Sync(ctx, input, []config.Module{})
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldContainSubstring, "failed loading package url")
@@ -74,8 +76,8 @@ func TestCloud(t *testing.T) {
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
 		input := []config.PackageConfig{
-			{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
-			{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -91,8 +93,8 @@ func TestCloud(t *testing.T) {
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
 		input := []config.PackageConfig{
-			{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
-			{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input[1]) // only store second
 
@@ -105,12 +107,14 @@ func TestCloud(t *testing.T) {
 	})
 
 	t.Run("sync re-downloads on error", func(t *testing.T) {
-		pkg := config.PackageConfig{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "module"}
+		pkg := config.PackageConfig{
+			PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "module"},
+		}
 
 		// create a package manager and Sync to download the package
 		_, pm := newPackageManager(t, client, fakeServer, logger, "")
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
-		pkgDir := pkg.LocalDataDirectory(pm.(*cloudManager).packagesDir)
+		pkgDir := pkg.LocalDataDirectory(pm.(*cloudManager).PackagesDir)
 		module := config.Module{ExePath: pkgDir + "/some-text.txt"}
 		fakeServer.StorePackage(pkg)
 		err = pm.Sync(ctx, []config.PackageConfig{pkg}, []config.Module{module})
@@ -123,7 +127,7 @@ func TestCloud(t *testing.T) {
 
 		// close previous package manager, make sure new PM *doesn't* re-download with intact ExePath
 		pm.Close(ctx)
-		_, pm = newPackageManager(t, client, fakeServer, logger, pm.(*cloudManager).packagesDir)
+		_, pm = newPackageManager(t, client, fakeServer, logger, pm.(*cloudManager).PackagesDir)
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 		fakeServer.StorePackage(pkg)
 		// sleep to make super sure modification time increments
@@ -143,7 +147,7 @@ func TestCloud(t *testing.T) {
 		test.That(t, err, test.ShouldBeNil)
 
 		// create fresh packageManager to simulate a reboot, i.e. so the system doesn't think the module is already managed.
-		_, pm = newPackageManager(t, client, fakeServer, logger, pm.(*cloudManager).packagesDir)
+		_, pm = newPackageManager(t, client, fakeServer, logger, pm.(*cloudManager).PackagesDir)
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 		fakeServer.StorePackage(pkg)
 		err = pm.Sync(ctx, []config.PackageConfig{pkg}, []config.Module{module})
@@ -161,8 +165,8 @@ func TestCloud(t *testing.T) {
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
 		input := []config.PackageConfig{
-			{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
-			{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -192,8 +196,8 @@ func TestCloud(t *testing.T) {
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
 		input := []config.PackageConfig{
-			{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
-			{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -223,7 +227,7 @@ func TestCloud(t *testing.T) {
 		defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
 		input := []config.PackageConfig{
-			{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -251,7 +255,7 @@ func TestCloud(t *testing.T) {
 		fakeServer.SetInvalidChecksum(true)
 
 		input := []config.PackageConfig{
-			{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -272,8 +276,8 @@ func TestCloud(t *testing.T) {
 		fakeServer.SetChecksumWithLeadingZeroes(true)
 
 		input := []config.PackageConfig{
-			{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
-			{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-2", Package: "org1/test-model", Version: "v2", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -291,7 +295,7 @@ func TestCloud(t *testing.T) {
 		fakeServer.SetInvalidHTTPRes(true)
 
 		input := []config.PackageConfig{
-			{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -312,7 +316,7 @@ func TestCloud(t *testing.T) {
 		fakeServer.SetInvalidTar(true)
 
 		input := []config.PackageConfig{
-			{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"},
+			{PackagePathDets: config.PackagePathDets{Name: "some-name-1", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
 		}
 		fakeServer.StorePackage(input...)
 
@@ -327,7 +331,7 @@ func TestCloud(t *testing.T) {
 	})
 }
 
-func TestSyntheticPackageDownload(t *testing.T) {
+func TestDownloadFileCopy(t *testing.T) {
 	ctx := context.Background()
 	logger := logging.NewTestLogger(t)
 	fakeServer, err := putils.NewFakePackageServer(ctx, logger)
@@ -339,14 +343,18 @@ func TestSyntheticPackageDownload(t *testing.T) {
 	t.Cleanup(func() { conn.Close() })
 
 	remotePackage := config.PackageConfig{
-		Name:    "test:remote",
-		Package: "test:remote",
-		Version: "0.0.1",
-		Type:    config.PackageTypeModule,
+		PackagePathDets: config.PackagePathDets{
+			Name:    "test:remote",
+			Package: "test:remote",
+			Version: "0.0.1",
+			Type:    config.PackageTypeModule,
+		},
 	}
 	syntheticPackage := config.PackageConfig{
-		Name:      "test:synthetic",
-		Package:   "test:synthetic",
+		PackagePathDets: config.PackagePathDets{
+			Name:    "test:synthetic",
+			Package: "test:synthetic",
+		},
 		LocalPath: "test_package.tar.gz",
 	}
 
@@ -366,15 +374,16 @@ func TestSyntheticPackageDownload(t *testing.T) {
 	t.Run("downloadPackage-synthetic", func(t *testing.T) {
 		dstDir := t.TempDir()
 		cm := cloudManager{
-			logger:      logger,
-			packagesDir: dstDir,
+			PackageDownloader: PackageDownloader{
+				PackagesDir: dstDir,
+			},
 		}
 		url, err := getPackageURL(ctx, logger, client, syntheticPackage)
 		test.That(t, err, test.ShouldBeNil)
-		err = cm.downloadPackage(ctx, url, syntheticPackage, []string{})
+		err = cm.DownloadPackage(ctx, logger, url, syntheticPackage.PackagePathDets, []string{})
 		test.That(t, err, test.ShouldBeNil)
 		dst := filepath.Join(
-			syntheticPackage.LocalDataDirectory(cm.packagesDir),
+			syntheticPackage.LocalDataDirectory(cm.PackagesDir),
 			"run.sh",
 		)
 		_, err = os.Stat(dst)
@@ -473,7 +482,9 @@ func TestPackageRefs(t *testing.T) {
 	packageDir, pm := newPackageManager(t, client, fakeServer, logger, "")
 	defer utils.UncheckedErrorFunc(func() error { return pm.Close(context.Background()) })
 
-	input := []config.PackageConfig{{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}}
+	input := []config.PackageConfig{
+		{PackagePathDets: config.PackagePathDets{Name: "some-name", Package: "org1/test-model", Version: "v1", Type: "ml_model"}},
+	}
 	fakeServer.StorePackage(input...)
 
 	err = pm.Sync(ctx, input, []config.Module{})

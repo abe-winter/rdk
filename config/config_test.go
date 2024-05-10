@@ -543,9 +543,11 @@ func TestConfigEnsurePartialStart(t *testing.T) {
 
 	invalidPackges := config.Config{
 		Packages: []config.PackageConfig{{
-			Name:    "testPackage",
-			Type:    config.PackageTypeMlModel,
-			Package: "hi/package/test",
+			PackagePathDets: config.PackagePathDets{
+				Name:    "testPackage",
+				Type:    config.PackageTypeMlModel,
+				Package: "hi/package/test",
+			},
 			Status: &config.AppValidationStatus{
 				Error: cloudErr,
 			},
@@ -1054,9 +1056,11 @@ func TestValidateUniqueNames(t *testing.T) {
 		API:   shell.API,
 	}
 	package1 := config.PackageConfig{
-		Package: "package1",
-		Name:    "package1",
-		Type:    config.PackageTypeMlModel,
+		PackagePathDets: config.PackagePathDets{
+			Package: "package1",
+			Name:    "package1",
+			Type:    config.PackageTypeMlModel,
+		},
 	}
 	module1 := config.Module{
 		Name:     "m1",
@@ -1154,54 +1158,66 @@ func TestPackageConfig(t *testing.T) {
 	}{
 		{
 			config: config.PackageConfig{
-				Name:    "my_package",
-				Package: "my_org/my_package",
-				Version: "0",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "my_package",
+					Package: "my_org/my_package",
+					Version: "0",
+				},
 			},
 			shouldFailValidation: true,
 		},
 		{
 			config: config.PackageConfig{
-				Name:    "my_module",
-				Type:    config.PackageTypeModule,
-				Package: "my_org/my_module",
-				Version: "1.2",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "my_module",
+					Type:    config.PackageTypeModule,
+					Package: "my_org/my_module",
+					Version: "1.2",
+				},
 			},
 			expectedRealFilePath: filepath.Join(viamDotDir, "packages", "data", "module", "my_org-my_module-1_2"),
 		},
 		{
 			config: config.PackageConfig{
-				Name:    "my_ml_model",
-				Type:    config.PackageTypeMlModel,
-				Package: "my_org/my_ml_model",
-				Version: "latest",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "my_ml_model",
+					Type:    config.PackageTypeMlModel,
+					Package: "my_org/my_ml_model",
+					Version: "latest",
+				},
 			},
 			expectedRealFilePath: filepath.Join(viamDotDir, "packages", "data", "ml_model", "my_org-my_ml_model-latest"),
 		},
 		{
 			config: config.PackageConfig{
-				Name:    "my_slam_map",
-				Type:    config.PackageTypeSlamMap,
-				Package: "my_org/my_slam_map",
-				Version: "latest",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "my_slam_map",
+					Type:    config.PackageTypeSlamMap,
+					Package: "my_org/my_slam_map",
+					Version: "latest",
+				},
 			},
 			expectedRealFilePath: filepath.Join(viamDotDir, "packages", "data", "slam_map", "my_org-my_slam_map-latest"),
 		},
 		{
 			config: config.PackageConfig{
-				Name:    "::::",
-				Type:    config.PackageTypeMlModel,
-				Package: "my_org/my_ml_model",
-				Version: "latest",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "::::",
+					Type:    config.PackageTypeMlModel,
+					Package: "my_org/my_ml_model",
+					Version: "latest",
+				},
 			},
 			shouldFailValidation: true,
 		},
 		{
 			config: config.PackageConfig{
-				Name:    "my_ml_model",
-				Type:    config.PackageType("willfail"),
-				Package: "my_org/my_ml_model",
-				Version: "latest",
+				PackagePathDets: config.PackagePathDets{
+					Name:    "my_ml_model",
+					Type:    config.PackageType("willfail"),
+					Package: "my_org/my_ml_model",
+					Version: "latest",
+				},
 			},
 			shouldFailValidation: true,
 		},
