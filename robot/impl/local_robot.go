@@ -471,7 +471,7 @@ func newWithResources(
 		closeCtx,
 		r.webSvc.ModuleAddress(),
 		r.removeOrphanedResources,
-		cfg.UntrustedEnv,
+		cfg,
 		homeDir,
 		cloudID,
 		logger,

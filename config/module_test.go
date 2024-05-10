@@ -31,7 +31,7 @@ func TestSyntheticModule(t *testing.T) {
 
 	t.Run("PackagePathDets", func(t *testing.T) {
 		ppd := modNeedsSynthetic.PackagePathDets()
-		test.That(t, ppd.Type, test.ShouldEqual, ModuleTypeLocal)
+		test.That(t, ppd.Type, test.ShouldEqual, PackageTypeModule)
 	})
 
 	t.Run("EvaluateExePath", func(t *testing.T) {

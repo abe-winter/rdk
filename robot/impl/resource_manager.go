@@ -101,13 +101,13 @@ func (manager *resourceManager) startModuleManager(
 	ctx context.Context,
 	parentAddr string,
 	removeOrphanedResources func(context.Context, []resource.Name),
-	untrustedEnv bool,
+	cfg *config.Config,
 	viamHomeDir string,
 	robotCloudID string,
 	logger logging.Logger,
 ) {
 	mmOpts := modmanageroptions.Options{
-		UntrustedEnv:            untrustedEnv,
+		UntrustedEnv:            cfg.UntrustedEnv,
 		RemoveOrphanedResources: removeOrphanedResources,
 		ViamHomeDir:             viamHomeDir,
 		RobotCloudID:            robotCloudID,

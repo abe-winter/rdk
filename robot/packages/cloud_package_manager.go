@@ -31,8 +31,8 @@ import (
 
 const (
 	allowedContentType = "application/x-gzip"
-	// URI scheme for local system, see https://datatracker.ietf.org/doc/rfc3986/
-	fileScheme = "file://"
+	// FileScheme is the URI scheme for local system, see https://datatracker.ietf.org/doc/rfc3986/
+	FileScheme = "file://"
 )
 
 var (
@@ -465,7 +465,7 @@ func (d *PackageDownloader) DownloadPackage(
 
 	var contentType string
 	dstPath := p.LocalDownloadPath(d.PackagesDir)
-	if pathOnly, found := strings.CutPrefix(url, fileScheme); found {
+	if pathOnly, found := strings.CutPrefix(url, FileScheme); found {
 		// this branch does local copy for file:// URIs
 		src, err := os.Open(pathOnly) //nolint:gosec
 		if err != nil {

@@ -34,6 +34,7 @@ import (
 	"go.viam.com/rdk/module/modmaninterface"
 	"go.viam.com/rdk/operation"
 	"go.viam.com/rdk/resource"
+	"go.viam.com/rdk/robot/packages"
 	rutils "go.viam.com/rdk/utils"
 )
 
@@ -63,6 +64,7 @@ func NewManager(
 		removeOrphanedResources: options.RemoveOrphanedResources,
 		restartCtx:              restartCtx,
 		restartCtxCancel:        restartCtxCancel,
+		packagePath:             options.PackagePath,
 	}
 }
 
@@ -152,6 +154,7 @@ type Manager struct {
 	// viamHomeDir is the absolute path to the viam home directory. Ex: /home/walle/.viam
 	// `viamHomeDir` may only be the empty string in testing
 	viamHomeDir string
+	packagePath string
 	// moduleDataParentDir is the absolute path to the current robots module data directory.
 	// Ex: /home/walle/.viam/module-data/<cloud-robot-id>
 	// it is empty if the modmanageroptions.Options.viamHomeDir was empty
@@ -249,6 +252,7 @@ func (mgr *Manager) Add(ctx context.Context, confs ...config.Module) error {
 	return combinedErr
 }
 
+// add starts a single module's subprocess, does directory setup, waits for ready, does resource registration.
 func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
 	_, exists := mgr.modules.Load(conf.Name)
 	if exists {
@@ -264,6 +268,17 @@ func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
 		if !strings.HasPrefix(filepath.Clean(moduleDataDir), filepath.Clean(mgr.moduleDataParentDir)) {
 			return errors.Errorf("module %q would have a data directory %q outside of the module data directory %q",
 				conf.Name, moduleDataDir, mgr.moduleDataParentDir)
+		}
+	}
+
+	if conf.IsLocalTarball() {
+		mgr.logger.Debugw("copying local tarball", "path", conf.RawExePath)
+		downloader := packages.PackageDownloader{
+			PackagesDir: mgr.packagePath,
+		}
+		err := downloader.DownloadPackage(ctx, mgr.logger, packages.FileScheme+conf.RawExePath, conf.PackagePathDets(), []string{})
+		if err != nil {
+			return err
 		}
 	}
 
