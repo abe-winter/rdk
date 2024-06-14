@@ -621,7 +621,7 @@ func (svc *webService) initRPCOptions(listenerTCPAddr *net.TCPAddr, options webo
 		rpc.WithAuthAudience(options.FQDN),
 		rpc.WithInstanceNames(hosts.Names...),
 		rpc.WithWebRTCServerOptions(rpc.WebRTCServerOptions{
-			Enable:                    true,
+			Enable:                    false,
 			EnableInternalSignaling:   true,
 			ExternalSignalingDialOpts: options.SignalingDialOpts,
 			ExternalSignalingAddress:  options.SignalingAddress,

@@ -45,8 +45,9 @@ func getAgentInfo() (*apppb.AgentInfo, error) {
 	}
 
 	ips, err := utils.GetAllLocalIPv4s()
-	if err != nil {
-		return nil, err
+	// note: on android this causes 'route ip+net: netlinkrib: permission denied' hence the ignore.
+	if err != nil && runtime.GOOS != "android" {
+		return nil, errors.Wrap(err, "in GetAllLocalIPv4s")
 	}
 
 	arch := runtime.GOARCH
@@ -688,6 +689,7 @@ func CreateNewGRPCClient(ctx context.Context, cloudCfg *Cloud, logger logging.Lo
 	if u.Scheme == "http" {
 		dialOpts = append(dialOpts, rpc.WithInsecure())
 	}
+	dialOpts = append(dialOpts, rpc.WithWebRTCOptions(rpc.DialWebRTCOptions{Disable: true}))
 
 	return rpc.DialDirectGRPC(ctx, u.Host, logger.AsZap(), dialOpts...)
 }

@@ -23,8 +23,9 @@ func DroidStopHook() { //nolint:revive
 }
 
 // MainEntry is called by our android app to start the RDK.
-func MainEntry(configPath, writeablePath, osEnv string) {
+func MainEntry(configPath, writeablePath, osEnv string, disableMDNS bool) {
 	os.Args = append(os.Args, "-config", configPath)
+	if disableMDNS { os.Args = append(os.Args, "-disable-mdns") }
 	for _, envEntry := range strings.Split(osEnv, "\n") {
 		entryParts := strings.SplitN(envEntry, "=", 2)
 		os.Setenv(entryParts[0], entryParts[1]) //nolint:errcheck,gosec
