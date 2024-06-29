@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -298,6 +299,47 @@ func (mgr *Manager) startModuleProcess(mod *module) error {
 	)
 }
 
+type SetupStep struct {
+	Tool string
+	Args []string
+}
+
+var defaultSteps = []SetupStep{{Tool: "uv", Args: []string{"requirements.txt"}}}
+
+func wire(cmd *exec.Cmd, wd string) *exec.Cmd {
+	// todo: this needs to be logged I think not printed
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Dir = wd
+	return cmd
+}
+
+func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []SetupStep) error {
+	// todo: share wd setter with mod manager
+	wd := filepath.Dir(mod.cfg.ExePath)
+	for _, step := range steps {
+		mgr.logger.Infof("running setup step %s", step.Tool)
+		switch step.Tool {
+		case "uv":
+			if _, err := exec.LookPath("uv"); err != nil {
+				// todo: try to install it if missing
+				return errors.Wrap(err, "uv command not on system")
+			}
+			if err := wire(exec.CommandContext(ctx, "uv", "venv"), wd).Run(); err != nil {
+				return err
+			}
+			if err := wire(exec.CommandContext(ctx, "uv", "pip", "install", "-r", step.Args[0]), wd).Run(); err != nil {
+				return err
+			}
+			// todo: set env vars in child to activate it (venv and path? just path should do it).
+			// let these steps modify the env.
+		default:
+			mgr.logger.Warn("unk tool %s for module %s", step.Tool, mod.cfg.Name)
+		}
+	}
+	return nil
+}
+
 func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
 	// add calls startProcess, which can also be called by the OUE handler in the attemptRestart
 	// call. Both of these involve owning a lock, so in unhappy cases of malformed modules
@@ -320,6 +362,9 @@ func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
 			return errors.WithMessage(err, "error while creating data directory for module "+mod.cfg.Name)
 		}
 	}
+
+	// todo: figure out how to only run this on install
+	mgr.runSetupSteps(ctx, mod, defaultSteps)
 
 	cleanup := rutils.SlowStartupLogger(
 		ctx, "Waiting for module to complete startup and registration", "module", mod.cfg.Name, mgr.logger)
