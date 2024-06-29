@@ -4,11 +4,13 @@ package modmanager
 import (
 	"context"
 	"fmt"
+	"hash/crc32"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -305,7 +307,7 @@ type SetupStep struct {
 	Args []string
 }
 
-var defaultSteps = []SetupStep{{Tool: "uv", Args: []string{"requirements.txt"}}}
+var defaultSteps = []SetupStep{{Tool: "pip", Args: []string{"requirements.txt"}}}
 
 func wire(cmd *exec.Cmd, wd string) *exec.Cmd {
 	// todo: this needs to be logged I think not printed
@@ -313,6 +315,57 @@ func wire(cmd *exec.Cmd, wd string) *exec.Cmd {
 	cmd.Stdout = os.Stdout
 	cmd.Dir = wd
 	return cmd
+}
+
+// todo: this isn't a success check, it's an operation cache
+type SuccessCheck int
+
+const (
+	SuccessCheckOK SuccessCheck = iota
+	SuccessCheckNoOutput
+	SuccessCheckNoInput
+	SuccessCheckChanged
+	SuccessCheckBadFormat
+)
+
+func setSuccess(name, wd, target string) error {
+	path := filepath.Join(wd, fmt.Sprintf(".viam-%s.success", name))
+	contents, err := os.ReadFile(filepath.Join(wd, target))
+	if err != nil {
+		return err
+	}
+	result := crc32.ChecksumIEEE(contents)
+	return os.WriteFile(path, []byte(strconv.Itoa(int(result))), 0666)
+}
+
+func checkSuccess(name, wd, target string) SuccessCheck {
+	path := filepath.Join(wd, fmt.Sprintf(".viam-%s.success", name))
+	prevRaw, err := os.ReadFile(path)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			// todo: log this instead
+			println("unexpected error in checkSuccess", err.Error())
+		}
+		return SuccessCheckNoOutput
+	}
+	contents, err := os.ReadFile(filepath.Join(wd, target))
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			// todo: log this instead
+			println("unexpected error in checkSuccess", err.Error())
+		}
+		return SuccessCheckNoInput
+	}
+	result := crc32.ChecksumIEEE(contents)
+	prev, err := strconv.Atoi(string(prevRaw))
+	if err != nil {
+		// todo: log me
+		return SuccessCheckBadFormat
+	}
+	if int(result) == prev {
+		return SuccessCheckOK
+	}
+	return SuccessCheckChanged
 }
 
 // returns env overrides
@@ -323,7 +376,15 @@ func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []Setu
 	for _, step := range steps {
 		mgr.logger.Infof("running setup step %s", step.Tool)
 		switch step.Tool {
-		case "uv":
+		case "pip":
+			path["VIRTUAL_ENV"] = filepath.Join(wd, ".venv")
+			// venv must come first or system python will take precedence
+			path["PATH"] = filepath.Join(wd, ".venv/bin") + ":" + os.Getenv("PATH")
+			// todo: length check step.Args
+			if checkSuccess("pip", wd, step.Args[0]) == SuccessCheckOK {
+				println("previous run exists! not rerunning")
+				continue
+			}
 			if _, err := exec.LookPath("uv"); err != nil {
 				// todo: try to install it if missing
 				return nil, errors.Wrap(err, "uv command not on system")
@@ -334,11 +395,9 @@ func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []Setu
 			if err := wire(exec.CommandContext(ctx, "uv", "pip", "install", "-r", step.Args[0]), wd).Run(); err != nil {
 				return nil, err
 			}
-			// todo: set env vars in child to activate it (venv and path? just path should do it).
-			// let these steps modify the env.
-			path["VIRTUAL_ENV"] = filepath.Join(wd, ".venv")
-			// venv must come first or system python will take precedence
-			path["PATH"] = filepath.Join(wd, ".venv/bin") + ":" + os.Getenv("PATH")
+			if err := setSuccess("pip", wd, step.Args[0]); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("unk tool %s for module %s", step.Tool, mod.cfg.Name)
 		}
