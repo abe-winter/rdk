@@ -288,7 +288,7 @@ func (mgr *Manager) add(ctx context.Context, conf config.Module) error {
 	return nil
 }
 
-func (mgr *Manager) startModuleProcess(mod *module) error {
+func (mgr *Manager) startModuleProcess(mod *module, path map[string]string) error {
 	return mod.startProcess(
 		mgr.restartCtx,
 		mgr.parentAddr,
@@ -296,6 +296,7 @@ func (mgr *Manager) startModuleProcess(mod *module) error {
 		mgr.logger,
 		mgr.viamHomeDir,
 		mgr.packagesDir,
+		path,
 	)
 }
 
@@ -314,30 +315,35 @@ func wire(cmd *exec.Cmd, wd string) *exec.Cmd {
 	return cmd
 }
 
-func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []SetupStep) error {
+// returns env overrides
+func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []SetupStep) (map[string]string, error) {
 	// todo: share wd setter with mod manager
 	wd := filepath.Dir(mod.cfg.ExePath)
+	path := make(map[string]string)
 	for _, step := range steps {
 		mgr.logger.Infof("running setup step %s", step.Tool)
 		switch step.Tool {
 		case "uv":
 			if _, err := exec.LookPath("uv"); err != nil {
 				// todo: try to install it if missing
-				return errors.Wrap(err, "uv command not on system")
+				return nil, errors.Wrap(err, "uv command not on system")
 			}
 			if err := wire(exec.CommandContext(ctx, "uv", "venv"), wd).Run(); err != nil {
-				return err
+				return nil, err
 			}
 			if err := wire(exec.CommandContext(ctx, "uv", "pip", "install", "-r", step.Args[0]), wd).Run(); err != nil {
-				return err
+				return nil, err
 			}
 			// todo: set env vars in child to activate it (venv and path? just path should do it).
 			// let these steps modify the env.
+			path["VIRTUAL_ENV"] = filepath.Join(wd, ".venv")
+			// venv must come first or system python will take precedence
+			path["PATH"] = filepath.Join(wd, ".venv/bin") + ":" + os.Getenv("PATH")
 		default:
-			mgr.logger.Warn("unk tool %s for module %s", step.Tool, mod.cfg.Name)
+			return nil, fmt.Errorf("unk tool %s for module %s", step.Tool, mod.cfg.Name)
 		}
 	}
-	return nil
+	return path, nil
 }
 
 func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
@@ -364,13 +370,16 @@ func (mgr *Manager) startModule(ctx context.Context, mod *module) error {
 	}
 
 	// todo: figure out how to only run this on install
-	mgr.runSetupSteps(ctx, mod, defaultSteps)
+	path, err := mgr.runSetupSteps(ctx, mod, defaultSteps)
+	if err != nil {
+		return err
+	}
 
 	cleanup := rutils.SlowStartupLogger(
 		ctx, "Waiting for module to complete startup and registration", "module", mod.cfg.Name, mgr.logger)
 	defer cleanup()
 
-	if err := mgr.startModuleProcess(mod); err != nil {
+	if err := mgr.startModuleProcess(mod, path); err != nil {
 		return errors.WithMessage(err, "error while starting module "+mod.cfg.Name)
 	}
 
@@ -958,7 +967,8 @@ func (mgr *Manager) attemptRestart(ctx context.Context, mod *module) []resource.
 
 	// Attempt to restart module process 3 times.
 	for attempt := 1; attempt < 4; attempt++ {
-		if err := mgr.startModuleProcess(mod); err != nil {
+		// todo: this will lose the env hacks, need to actually keep it
+		if err := mgr.startModuleProcess(mod, map[string]string{}); err != nil {
 			mgr.logger.Errorw("Error while restarting crashed module", "restart attempt",
 				attempt, "module", mod.cfg.Name, "error", err)
 			if attempt == 3 {
@@ -1088,6 +1098,7 @@ func (m *module) startProcess(
 	logger logging.Logger,
 	viamHomeDir string,
 	packagesDir string,
+	path map[string]string,
 ) error {
 	var err error
 	// append a random alpha string to the module name while creating a socket address to avoid conflicts
@@ -1104,6 +1115,10 @@ func (m *module) startProcess(
 		return err
 	}
 	moduleEnvironment := m.getFullEnvironment(viamHomeDir)
+	for k, v := range path {
+		// todo: better way to pass this around pls
+		moduleEnvironment[k] = v
+	}
 	// Prefer VIAM_MODULE_ROOT as the current working directory if present but fallback to the directory of the exepath
 	moduleWorkingDirectory, ok := moduleEnvironment["VIAM_MODULE_ROOT"]
 	if !ok {
