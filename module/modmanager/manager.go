@@ -387,6 +387,7 @@ func (mgr *Manager) runSetupSteps(ctx context.Context, mod *module, steps []Setu
 			}
 			if _, err := exec.LookPath("uv"); err != nil {
 				// todo: try to install it if missing
+				// todo: the installation for this is platform-specific. need to support a few and allow user to run manual commands per platform
 				return nil, errors.Wrap(err, "uv command not on system")
 			}
 			if err := wire(exec.CommandContext(ctx, "uv", "venv"), wd).Run(); err != nil {
