@@ -38,15 +38,11 @@ import (
 	"go.viam.com/rdk/grpc"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/operation"
-	"go.viam.com/rdk/pointcloud"
 	rprotoutils "go.viam.com/rdk/protoutils"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/robot"
-	"go.viam.com/rdk/robot/framesystem"
 	"go.viam.com/rdk/robot/packages"
 	"go.viam.com/rdk/session"
-	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils/contextutils"
 )
 
@@ -806,84 +802,6 @@ func (rc *RobotClient) DiscoverComponents(ctx context.Context, qs []resource.Dis
 			})
 	}
 	return discoveries, nil
-}
-
-// FrameSystemConfig  returns the configuration of the frame system of a given machine.
-//
-//	frameSystem, err := machine.FrameSystemConfig(context.Background(), nil)
-func (rc *RobotClient) FrameSystemConfig(ctx context.Context) (*framesystem.Config, error) {
-	resp, err := rc.client.FrameSystemConfig(ctx, &pb.FrameSystemConfigRequest{})
-	if err != nil {
-		return nil, err
-	}
-	cfgs := resp.GetFrameSystemConfigs()
-	result := make([]*referenceframe.FrameSystemPart, 0, len(cfgs))
-	for _, cfg := range cfgs {
-		part, err := referenceframe.ProtobufToFrameSystemPart(cfg)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, part)
-	}
-	return &framesystem.Config{Parts: result}, nil
-}
-
-// TransformPose will transform the pose of the requested poseInFrame to the desired frame in the robot's frame system.
-//
-//	  import (
-//		  "go.viam.com/rdk/referenceframe"
-//		  "go.viam.com/rdk/spatialmath"
-//	  )
-//
-//	  baseOrigin := referenceframe.NewPoseInFrame("test-base", spatialmath.NewZeroPose())
-//	  movementSensorToBase, err := robot.TransformPose(ctx, baseOrigin, "my-movement-sensor", nil)
-func (rc *RobotClient) TransformPose(
-	ctx context.Context,
-	query *referenceframe.PoseInFrame,
-	destination string,
-	additionalTransforms []*referenceframe.LinkInFrame,
-) (*referenceframe.PoseInFrame, error) {
-	transforms, err := referenceframe.LinkInFramesToTransformsProtobuf(additionalTransforms)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := rc.client.TransformPose(ctx, &pb.TransformPoseRequest{
-		Destination:            destination,
-		Source:                 referenceframe.PoseInFrameToProtobuf(query),
-		SupplementalTransforms: transforms,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return referenceframe.ProtobufToPoseInFrame(resp.Pose), nil
-}
-
-// TransformPointCloud will transform the pointcloud to the desired frame in the robot's frame system.
-// Do not move the robot between the generation of the initial pointcloud and the receipt
-// of the transformed pointcloud because that will make the transformations inaccurate.
-// TODO(RSDK-1197): Rather than having to apply a transform to every point using ApplyOffset,
-// implementing the suggested ticket would mean simply adding the transform to a field in the
-// point cloud struct, and then returning the updated struct. Would be super fast.
-func (rc *RobotClient) TransformPointCloud(ctx context.Context, srcpc pointcloud.PointCloud, srcName, dstName string,
-) (pointcloud.PointCloud, error) {
-	if dstName == "" {
-		dstName = referenceframe.World
-	}
-	if srcName == "" {
-		return nil, errors.New("srcName cannot be empty, must provide name of point cloud origin")
-	}
-	// get the offset pose from a TransformPose request
-	sourceFrameZero := referenceframe.NewPoseInFrame(srcName, spatialmath.NewZeroPose())
-	resp, err := rc.client.TransformPose(ctx, &pb.TransformPoseRequest{
-		Destination:            dstName,
-		Source:                 referenceframe.PoseInFrameToProtobuf(sourceFrameZero),
-		SupplementalTransforms: []*commonpb.Transform{},
-	})
-	if err != nil {
-		return nil, err
-	}
-	transformPose := referenceframe.ProtobufToPoseInFrame(resp.Pose).Pose()
-	return pointcloud.ApplyOffset(ctx, srcpc, transformPose, rc.Logger())
 }
 
 // Status returns the status of the resources on the machine. You can provide a list of ResourceNames for which you want

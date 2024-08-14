@@ -18,10 +18,7 @@ import (
 	"go.viam.com/rdk/grpc"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/operation"
-	"go.viam.com/rdk/pointcloud"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/robot/framesystem"
 	"go.viam.com/rdk/robot/packages"
 	weboptions "go.viam.com/rdk/robot/web/options"
 	"go.viam.com/rdk/session"
@@ -124,22 +121,6 @@ type Robot interface {
 
 	// Logger returns the logger the robot is using.
 	Logger() logging.Logger
-
-	// FrameSystemConfig returns the individual parts that make up a robot's frame system
-	FrameSystemConfig(ctx context.Context) (*framesystem.Config, error)
-
-	// TransformPose will transform the pose of the requested poseInFrame to the desired frame in the robot's frame system.
-	TransformPose(
-		ctx context.Context,
-		pose *referenceframe.PoseInFrame,
-		dst string,
-		additionalTransforms []*referenceframe.LinkInFrame,
-	) (*referenceframe.PoseInFrame, error)
-
-	// TransformPointCloud will transform the pointcloud to the desired frame in the robot's frame system.
-	// Do not move the robot between the generation of the initial pointcloud and the receipt
-	// of the transformed pointcloud because that will make the transformations inaccurate.
-	TransformPointCloud(ctx context.Context, srcpc pointcloud.PointCloud, srcName, dstName string) (pointcloud.PointCloud, error)
 
 	// Status takes a list of resource names and returns their corresponding statuses. If no names are passed in, return all statuses.
 	Status(ctx context.Context, resourceNames []resource.Name) ([]Status, error)

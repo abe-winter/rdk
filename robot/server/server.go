@@ -4,7 +4,6 @@
 package server
 
 import (
-	"bytes"
 	"context"
 	"strings"
 	"time"
@@ -25,9 +24,7 @@ import (
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/operation"
-	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/protoutils"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/session"
@@ -218,33 +215,12 @@ func (s *Server) DiscoverComponents(ctx context.Context, req *pb.DiscoverCompone
 
 // FrameSystemConfig returns the info of each individual part that makes up the frame system.
 func (s *Server) FrameSystemConfig(ctx context.Context, req *pb.FrameSystemConfigRequest) (*pb.FrameSystemConfigResponse, error) {
-	fsCfg, err := s.robot.FrameSystemConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-	configs := make([]*pb.FrameSystemConfig, len(fsCfg.Parts))
-	for i, part := range fsCfg.Parts {
-		c, err := part.ToProtobuf()
-		if err != nil {
-			if errors.Is(err, referenceframe.ErrNoModelInformation) {
-				configs[i] = nil
-				continue
-			}
-			return nil, err
-		}
-		configs[i] = c
-	}
-	return &pb.FrameSystemConfigResponse{FrameSystemConfigs: configs}, nil
+	return nil, errors.New("removed in this build")
 }
 
 // TransformPose will transform the pose of the requested poseInFrame to the desired frame in the robot's frame system.
 func (s *Server) TransformPose(ctx context.Context, req *pb.TransformPoseRequest) (*pb.TransformPoseResponse, error) {
-	transforms, err := referenceframe.LinkInFramesFromTransformsProtobuf(req.GetSupplementalTransforms())
-	if err != nil {
-		return nil, err
-	}
-	transformedPose, err := s.robot.TransformPose(ctx, referenceframe.ProtobufToPoseInFrame(req.Source), req.Destination, transforms)
-	return &pb.TransformPoseResponse{Pose: referenceframe.PoseInFrameToProtobuf(transformedPose)}, err
+	return nil, errors.New("removed in this build")
 }
 
 // TransformPCD will transform the pointcloud to the desired frame in the robot's frame system.
@@ -255,24 +231,7 @@ func (s *Server) TransformPose(ctx context.Context, req *pb.TransformPoseRequest
 // Then, you put that transform as a translation+quaternion in the VIEWPOINT field. You would only change one line in the PCD file,
 // rather than having to decode and then encode every point in the PCD. Would be a considerable speed up.
 func (s *Server) TransformPCD(ctx context.Context, req *pb.TransformPCDRequest) (*pb.TransformPCDResponse, error) {
-	// transform PCD bytes to pointcloud
-	pc, err := pointcloud.ReadPCD(bytes.NewReader(req.PointCloudPcd))
-	if err != nil {
-		return nil, err
-	}
-	// transform
-	final, err := s.robot.TransformPointCloud(ctx, pc, req.Source, req.Destination)
-	if err != nil {
-		return nil, err
-	}
-	// transform pointcloud back to PCD bytes
-	var buf bytes.Buffer
-	buf.Grow(200 + (final.Size() * 4 * 4)) // 4 numbers per point, each 4 bytes
-	err = pointcloud.ToPCD(final, &buf, pointcloud.PCDBinary)
-	if err != nil {
-		return nil, err
-	}
-	return &pb.TransformPCDResponse{PointCloudPcd: buf.Bytes()}, err
+	return nil, errors.New("removed in this build")
 }
 
 // GetStatus takes a list of resource names and returns their corresponding statuses. If no names are passed in, return all statuses.
