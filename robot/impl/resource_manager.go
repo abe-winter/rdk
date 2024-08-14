@@ -27,7 +27,6 @@ import (
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/robot/client"
 	"go.viam.com/rdk/robot/web"
-	"go.viam.com/rdk/services/shell"
 	rutils "go.viam.com/rdk/utils"
 )
 
@@ -1078,10 +1077,6 @@ func (manager *resourceManager) updateResources(
 	revision := conf.NewRevision()
 	for _, s := range conf.Added.Services {
 		rName := s.ResourceName()
-		if manager.opts.untrustedEnv && rName.API == shell.API {
-			allErrs = multierr.Combine(allErrs, errShellServiceDisabled)
-			continue
-		}
 		markErr := manager.markResourceForUpdate(rName, s, s.Dependencies(), revision)
 		allErrs = multierr.Combine(allErrs, markErr)
 	}
@@ -1103,12 +1098,6 @@ func (manager *resourceManager) updateResources(
 	}
 	for _, s := range conf.Modified.Services {
 		rName := s.ResourceName()
-
-		// Disable shell service when in untrusted env
-		if manager.opts.untrustedEnv && rName.API == shell.API {
-			allErrs = multierr.Combine(allErrs, errShellServiceDisabled)
-			continue
-		}
 
 		markErr := manager.markResourceForUpdate(rName, s, s.Dependencies(), revision)
 		allErrs = multierr.Combine(allErrs, markErr)
@@ -1271,10 +1260,6 @@ func (manager *resourceManager) markResourcesRemoved(
 ) []resource.Resource {
 	var resourcesToCloseBeforeComplete []resource.Resource
 	for _, rName := range rNames {
-		// Disable changes to shell in untrusted
-		if manager.opts.untrustedEnv && rName.API == shell.API {
-			continue
-		}
 
 		resNode, ok := manager.resources.Node(rName)
 		if !ok {

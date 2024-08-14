@@ -5,7 +5,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	packagespb "go.viam.com/api/app/packages/v1"
 	pb "go.viam.com/api/app/v1"
@@ -15,9 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"go.viam.com/rdk/logging"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/resource"
-	spatial "go.viam.com/rdk/spatialmath"
 	rutils "go.viam.com/rdk/utils"
 )
 
@@ -126,14 +123,6 @@ func ComponentConfigToProto(conf *resource.Config) (*pb.ComponentConfig, error) 
 		LogConfiguration: &pb.LogConfiguration{Level: strings.ToLower(conf.LogConfiguration.Level.String())},
 	}
 
-	if conf.Frame != nil {
-		frame, err := FrameConfigToProto(*conf.Frame)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert frame to proto config")
-		}
-		protoConf.Frame = frame
-	}
-
 	return &protoConf, nil
 }
 
@@ -181,14 +170,6 @@ func ComponentConfigFromProto(protoConf *pb.ComponentConfig) (*resource.Config, 
 		DependsOn:                 protoConf.GetDependsOn(),
 		AssociatedResourceConfigs: serviceConfigs,
 		LogConfiguration:          resource.LogConfig{Level: level},
-	}
-
-	if protoConf.GetFrame() != nil {
-		frame, err := FrameConfigFromProto(protoConf.GetFrame())
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert frame from proto config")
-		}
-		componentConf.Frame = frame
 	}
 
 	return &componentConf, nil
@@ -369,169 +350,6 @@ func AssociatedResourceConfigFromProto(proto *pb.ResourceLevelServiceConfig) (re
 	return service, nil
 }
 
-// FrameConfigToProto converts Frame to the proto equivalent.
-func FrameConfigToProto(frame referenceframe.LinkConfig) (*pb.Frame, error) {
-	pose, err := frame.Pose()
-	if err != nil {
-		return nil, err
-	}
-	pt := pose.Point()
-	orient := pose.Orientation()
-	proto := pb.Frame{
-		Parent: frame.Parent,
-		Translation: &pb.Translation{
-			X: pt.X,
-			Y: pt.Y,
-			Z: pt.Z,
-		},
-	}
-
-	var orientation pb.Orientation
-
-	switch oType := orient.(type) {
-	case *spatial.R4AA:
-		r4aa := orient.(*spatial.R4AA)
-		config := pb.Orientation_AxisAngles{
-			Theta: r4aa.Theta,
-			X:     r4aa.RX,
-			Y:     r4aa.RY,
-			Z:     r4aa.RZ,
-		}
-		orientation = pb.Orientation{
-			Type: &pb.Orientation_AxisAngles_{AxisAngles: &config},
-		}
-	case *spatial.OrientationVector:
-		vector := orient.(*spatial.OrientationVector)
-		config := pb.Orientation_OrientationVectorRadians{
-			Theta: vector.Theta,
-			X:     vector.OX,
-			Y:     vector.OY,
-			Z:     vector.OZ,
-		}
-		orientation = pb.Orientation{
-			Type: &pb.Orientation_VectorRadians{VectorRadians: &config},
-		}
-	case *spatial.OrientationVectorDegrees:
-		vector := orient.(*spatial.OrientationVectorDegrees)
-		config := pb.Orientation_OrientationVectorDegrees{
-			Theta: vector.Theta,
-			X:     vector.OX,
-			Y:     vector.OY,
-			Z:     vector.OZ,
-		}
-		orientation = pb.Orientation{
-			Type: &pb.Orientation_VectorDegrees{VectorDegrees: &config},
-		}
-	case *spatial.EulerAngles:
-		eulerAngles := orient.(*spatial.EulerAngles)
-		config := pb.Orientation_EulerAngles{
-			Roll:  eulerAngles.Roll,
-			Pitch: eulerAngles.Pitch,
-			Yaw:   eulerAngles.Yaw,
-		}
-		orientation = pb.Orientation{
-			Type: &pb.Orientation_EulerAngles_{EulerAngles: &config},
-		}
-	case *spatial.Quaternion:
-		q := orient.(*spatial.Quaternion)
-		config := pb.Orientation_Quaternion{
-			W: q.Real,
-			X: q.Imag,
-			Y: q.Jmag,
-			Z: q.Kmag,
-		}
-		orientation = pb.Orientation{
-			Type: &pb.Orientation_Quaternion_{Quaternion: &config},
-		}
-	default:
-		return nil, errors.Errorf("Orientation type %s unsupported in json configuration", oType)
-	}
-
-	proto.Orientation = &orientation
-	if frame.Geometry != nil {
-		proto.Geometry, err = frame.Geometry.ToProtobuf()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &proto, nil
-}
-
-// FrameConfigFromProto creates Frame from the proto equivalent.
-func FrameConfigFromProto(proto *pb.Frame) (*referenceframe.LinkConfig, error) {
-	var err error
-	frame := &referenceframe.LinkConfig{
-		Parent: proto.GetParent(),
-		Translation: r3.Vector{
-			X: proto.GetTranslation().GetX(),
-			Y: proto.GetTranslation().GetY(),
-			Z: proto.GetTranslation().GetZ(),
-		},
-	}
-
-	if proto.GetOrientation() != nil {
-		var orient spatial.Orientation
-		switch or := proto.GetOrientation().Type.(type) {
-		case *pb.Orientation_NoOrientation_:
-			orient = spatial.NewZeroOrientation()
-		case *pb.Orientation_VectorRadians:
-			orient = &spatial.OrientationVector{
-				Theta: or.VectorRadians.Theta,
-				OX:    or.VectorRadians.X,
-				OY:    or.VectorRadians.Y,
-				OZ:    or.VectorRadians.Z,
-			}
-		case *pb.Orientation_VectorDegrees:
-			orient = &spatial.OrientationVectorDegrees{
-				Theta: or.VectorDegrees.Theta,
-				OX:    or.VectorDegrees.X,
-				OY:    or.VectorDegrees.Y,
-				OZ:    or.VectorDegrees.Z,
-			}
-		case *pb.Orientation_EulerAngles_:
-			orient = &spatial.EulerAngles{
-				Pitch: or.EulerAngles.Pitch,
-				Roll:  or.EulerAngles.Roll,
-				Yaw:   or.EulerAngles.Yaw,
-			}
-		case *pb.Orientation_AxisAngles_:
-			orient = &spatial.R4AA{
-				Theta: or.AxisAngles.Theta,
-				RX:    or.AxisAngles.X,
-				RY:    or.AxisAngles.Y,
-				RZ:    or.AxisAngles.Z,
-			}
-		case *pb.Orientation_Quaternion_:
-			orient = &spatial.Quaternion{
-				Real: or.Quaternion.W,
-				Imag: or.Quaternion.X,
-				Jmag: or.Quaternion.Y,
-				Kmag: or.Quaternion.Z,
-			}
-		default:
-			return nil, errors.New("Orientation type unsupported")
-		}
-		frame.Orientation, err = spatial.NewOrientationConfig(orient)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if proto.GetGeometry() != nil {
-		geom, err := spatial.NewGeometryFromProto(proto.GetGeometry())
-		if err != nil {
-			return nil, err
-		}
-		frame.Geometry, err = spatial.NewGeometryConfig(geom)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return frame, nil
-}
-
 // RemoteConfigToProto converts Remote to the proto equivalent.
 func RemoteConfigToProto(remote *Remote) (*pb.RemoteConfig, error) {
 	remote.adjustPartialNames()
@@ -556,14 +374,6 @@ func RemoteConfigToProto(remote *Remote) (*pb.RemoteConfig, error) {
 		ServiceConfigs:          serviceConfigs,
 		Secret:                  remote.Secret,
 		Auth:                    remoteAuth,
-	}
-
-	if remote.Frame != nil {
-		frame, err := FrameConfigToProto(*remote.Frame)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert frame to proto config")
-		}
-		proto.Frame = frame
 	}
 
 	return &proto, nil
@@ -593,13 +403,6 @@ func RemoteConfigFromProto(proto *pb.RemoteConfig) (*Remote, error) {
 			return nil, errors.Wrap(err, "failed to convert remote auth config")
 		}
 		remote.Auth = *remoteAuth
-	}
-
-	if proto.GetFrame() != nil {
-		remote.Frame, err = FrameConfigFromProto(proto.GetFrame())
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to convert frame from proto config")
-		}
 	}
 
 	return &remote, nil

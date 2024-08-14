@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 
 	"go.viam.com/rdk/logging"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/utils"
 )
 
@@ -19,7 +18,6 @@ type Config struct {
 	Name             string
 	API              API
 	Model            Model
-	Frame            *referenceframe.LinkConfig
 	DependsOn        []string
 	LogConfiguration LogConfig
 	Attributes       utils.AttributeMap
@@ -45,7 +43,6 @@ type typeSpecificConfigData struct {
 	Namespace                 string                     `json:"namespace"`
 	Subtype                   string                     `json:"type"`
 	Model                     Model                      `json:"model"`
-	Frame                     *referenceframe.LinkConfig `json:"frame,omitempty"`
 	DependsOn                 []string                   `json:"depends_on,omitempty"`
 	LogConfiguration          LogConfig                  `json:"log_configuration"`
 	AssociatedResourceConfigs []AssociatedResourceConfig `json:"service_configs,omitempty"`
@@ -57,7 +54,6 @@ type configData struct {
 	Name                      string                     `json:"name"`
 	API                       API                        `json:"api"`
 	Model                     Model                      `json:"model"`
-	Frame                     *referenceframe.LinkConfig `json:"frame,omitempty"`
 	DependsOn                 []string                   `json:"depends_on,omitempty"`
 	LogConfiguration          LogConfig                  `json:"log_configuration"`
 	AssociatedResourceConfigs []AssociatedResourceConfig `json:"service_configs,omitempty"`
@@ -78,7 +74,6 @@ func (conf *Config) UnmarshalJSON(data []byte) error {
 		conf.Name = confData.Name
 		conf.API = confData.API
 		conf.Model = confData.Model
-		conf.Frame = confData.Frame
 		conf.DependsOn = confData.DependsOn
 		conf.LogConfiguration = confData.LogConfiguration
 		conf.AssociatedResourceConfigs = confData.AssociatedResourceConfigs
@@ -94,7 +89,6 @@ func (conf *Config) UnmarshalJSON(data []byte) error {
 	// this will get adjusted later
 	conf.API = APINamespace(typeSpecificConf.Namespace).WithType("").WithSubtype(typeSpecificConf.Subtype)
 	conf.Model = typeSpecificConf.Model
-	conf.Frame = typeSpecificConf.Frame
 	conf.DependsOn = typeSpecificConf.DependsOn
 	conf.LogConfiguration = typeSpecificConf.LogConfiguration
 	conf.AssociatedResourceConfigs = typeSpecificConf.AssociatedResourceConfigs
@@ -108,7 +102,6 @@ func (conf Config) MarshalJSON() ([]byte, error) {
 		Name:                      conf.Name,
 		API:                       conf.API,
 		Model:                     conf.Model,
-		Frame:                     conf.Frame,
 		DependsOn:                 conf.DependsOn,
 		LogConfiguration:          conf.LogConfiguration,
 		AssociatedResourceConfigs: conf.AssociatedResourceConfigs,

@@ -5,7 +5,6 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/golang/geo/r3"
 	//nolint:staticcheck
 	protov1 "github.com/golang/protobuf/proto"
 	commonpb "go.viam.com/api/common/v1"
@@ -17,7 +16,6 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/spatialmath"
 )
 
 // ResourceNameToProto converts a resource.Name to its proto counterpart.
@@ -36,46 +34,6 @@ func ResourceNameFromProto(name *commonpb.ResourceName) resource.Name {
 		resource.APINamespace(name.Namespace).WithType(name.Type).WithSubtype(name.Subtype),
 		name.Name,
 	)
-}
-
-// ConvertVectorProtoToR3 TODO.
-func ConvertVectorProtoToR3(v *commonpb.Vector3) r3.Vector {
-	if v == nil {
-		return r3.Vector{}
-	}
-	return r3.Vector{X: v.X, Y: v.Y, Z: v.Z}
-}
-
-// ConvertVectorR3ToProto TODO.
-func ConvertVectorR3ToProto(v r3.Vector) *commonpb.Vector3 {
-	return &commonpb.Vector3{X: v.X, Y: v.Y, Z: v.Z}
-}
-
-// ConvertOrientationToProto TODO.
-func ConvertOrientationToProto(o spatialmath.Orientation) *commonpb.Orientation {
-	oo := &commonpb.Orientation{}
-	// the orientation structure returned in the response can be nil as well,
-	// so we check again before populating the message.
-	if o != nil {
-		ov := o.OrientationVectorDegrees()
-		if ov != nil {
-			oo.OX = ov.OX
-			oo.OY = ov.OY
-			oo.OZ = ov.OZ
-			oo.Theta = ov.Theta
-		}
-	}
-	return oo
-}
-
-// ConvertProtoToOrientation TODO.
-func ConvertProtoToOrientation(o *commonpb.Orientation) spatialmath.Orientation {
-	return &spatialmath.OrientationVectorDegrees{
-		OX:    o.OX,
-		OY:    o.OY,
-		OZ:    o.OZ,
-		Theta: o.Theta,
-	}
 }
 
 // ConvertStringToAnyPB takes a string and parses it to an Any pb type.

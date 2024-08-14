@@ -20,7 +20,6 @@ import (
 	"go.viam.com/utils/rpc"
 
 	"go.viam.com/rdk/logging"
-	"go.viam.com/rdk/referenceframe"
 	"go.viam.com/rdk/resource"
 	rutils "go.viam.com/rdk/utils"
 )
@@ -327,7 +326,6 @@ func (c *Config) CopyOnlyPublicFields() (*Config, error) {
 type Remote struct {
 	Name                      string
 	Address                   string
-	Frame                     *referenceframe.LinkConfig
 	Auth                      RemoteAuth
 	ManagedBy                 string
 	Insecure                  bool
@@ -346,7 +344,6 @@ type Remote struct {
 type remoteData struct {
 	Name                      string                              `json:"name"`
 	Address                   string                              `json:"address"`
-	Frame                     *referenceframe.LinkConfig          `json:"frame,omitempty"`
 	Auth                      RemoteAuth                          `json:"auth"`
 	ManagedBy                 string                              `json:"managed_by"`
 	Insecure                  bool                                `json:"insecure"`
@@ -377,7 +374,6 @@ func (conf *Remote) UnmarshalJSON(data []byte) error {
 	*conf = Remote{
 		Name:                      temp.Name,
 		Address:                   temp.Address,
-		Frame:                     temp.Frame,
 		Auth:                      temp.Auth,
 		ManagedBy:                 temp.ManagedBy,
 		Insecure:                  temp.Insecure,
@@ -406,7 +402,6 @@ func (conf Remote) MarshalJSON() ([]byte, error) {
 	temp := remoteData{
 		Name:                      conf.Name,
 		Address:                   conf.Address,
-		Frame:                     conf.Frame,
 		Auth:                      conf.Auth,
 		ManagedBy:                 conf.ManagedBy,
 		Insecure:                  conf.Insecure,
@@ -469,11 +464,6 @@ func (conf *Remote) validate(path string) error {
 	}
 	if conf.Address == "" {
 		return resource.NewConfigValidationFieldRequiredError(path, "address")
-	}
-	if conf.Frame != nil {
-		if conf.Frame.Parent == "" {
-			return resource.NewConfigValidationFieldRequiredError(path, "frame.parent")
-		}
 	}
 
 	if conf.Secret != "" {
