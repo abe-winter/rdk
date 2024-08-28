@@ -6,8 +6,6 @@ import (
 
 	"github.com/go-gl/mathgl/mgl64"
 	"gonum.org/v1/gonum/num/quat"
-
-	"go.viam.com/rdk/utils"
 )
 
 // orientationVectorPoleRadius is how close OZ must be to +/-1 in order to use pole math for computing theta.
@@ -64,7 +62,8 @@ func (ov *OrientationVector) IsValid() error {
 
 // Degrees converts the OrientationVector to an OrientationVectorDegrees.
 func (ov *OrientationVector) Degrees() *OrientationVectorDegrees {
-	return &OrientationVectorDegrees{Theta: utils.RadToDeg(ov.Theta), OX: ov.OX, OY: ov.OY, OZ: ov.OZ}
+	return &OrientationVectorDegrees{OX: ov.OX, OY: ov.OY, OZ: ov.OZ}
+	// return &OrientationVectorDegrees{Theta: utils.RadToDeg(ov.Theta), OX: ov.OX, OY: ov.OY, OZ: ov.OZ}
 }
 
 // ToQuat converts an orientation vector to a quaternion.
@@ -165,7 +164,8 @@ func NewOrientationVectorDegrees() *OrientationVectorDegrees {
 
 // Radians converts a OrientationVectorDegrees to an OrientationVector.
 func (ovd *OrientationVectorDegrees) Radians() *OrientationVector {
-	return &OrientationVector{Theta: utils.DegToRad(ovd.Theta), OX: ovd.OX, OY: ovd.OY, OZ: ovd.OZ}
+	// return &OrientationVector{Theta: utils.DegToRad(ovd.Theta), OX: ovd.OX, OY: ovd.OY, OZ: ovd.OZ}
+	return &OrientationVector{OX: ovd.OX, OY: ovd.OY, OZ: ovd.OZ}
 }
 
 // ToQuat converts an orientation vector in degrees to a quaternion.

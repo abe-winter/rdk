@@ -7,8 +7,6 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/golang/geo/r3"
 	"gonum.org/v1/gonum/num/quat"
-
-	"go.viam.com/rdk/utils"
 )
 
 // Quaternion is an orientation in quaternion representation.
@@ -230,10 +228,11 @@ func Flip(q quat.Number) quat.Number {
 // QuaternionAlmostEqual is an equality test for all the float components of a quaternion. Quaternions have double coverage, q == -q, and
 // this function will *not* account for this. Use OrientationAlmostEqual unless you're certain this is what you want.
 func QuaternionAlmostEqual(a, b quat.Number, tol float64) bool {
-	return utils.Float64AlmostEqual(a.Imag, b.Imag, tol) &&
-		utils.Float64AlmostEqual(a.Jmag, b.Jmag, tol) &&
-		utils.Float64AlmostEqual(a.Kmag, b.Kmag, tol) &&
-		utils.Float64AlmostEqual(a.Real, b.Real, tol)
+	return false
+	// return utils.Float64AlmostEqual(a.Imag, b.Imag, tol) &&
+	// 	utils.Float64AlmostEqual(a.Jmag, b.Jmag, tol) &&
+	// 	utils.Float64AlmostEqual(a.Kmag, b.Kmag, tol) &&
+	// 	utils.Float64AlmostEqual(a.Real, b.Real, tol)
 }
 
 // Used for interpolating orientations.

@@ -7,8 +7,6 @@ import (
 
 	"github.com/golang/geo/r3"
 	commonpb "go.viam.com/api/common/v1"
-
-	"go.viam.com/rdk/utils"
 )
 
 // Always use at least this many points to describe a sphere.
@@ -68,7 +66,8 @@ func (s *sphere) almostEqual(g Geometry) bool {
 	if !ok {
 		return false
 	}
-	return PoseAlmostEqualEps(s.pose, other.pose, 1e-6) && utils.Float64AlmostEqual(s.radius, other.radius, 1e-8)
+	return PoseAlmostEqualEps(s.pose, other.pose, 1e-6)
+	// return PoseAlmostEqualEps(s.pose, other.pose, 1e-6) && utils.Float64AlmostEqual(s.radius, other.radius, 1e-8)
 }
 
 // Transform premultiplies the sphere pose with a transform, allowing the sphere to be moved in space.

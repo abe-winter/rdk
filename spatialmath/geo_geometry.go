@@ -6,8 +6,6 @@ import (
 	"github.com/golang/geo/r3"
 	geo "github.com/kellydunn/golang-geo"
 	commonpb "go.viam.com/api/common/v1"
-
-	"go.viam.com/rdk/utils"
 )
 
 // GeoGeometry is a struct to store the location and geometric structure of an obstacle in a geospatial environment.
@@ -214,11 +212,12 @@ func PoseToGeoPose(relativeTo *GeoPose, pose Pose) *GeoPose {
 	// -----------
 	//       |
 	//       |
-	bearing := utils.RadToDeg(math.Atan2(kmPoint.X, kmPoint.Y))
+	// bearing := utils.RadToDeg(math.Atan2(kmPoint.X, kmPoint.Y))
 	headingInWorld := relativeTo.Heading()
 
 	// get the absolute bearing, i.e. the bearing of pose p from north
-	absoluteBearing := normalizeAngle(bearing + headingInWorld)
+	// absoluteBearing := normalizeAngle(bearing + headingInWorld)
+	absoluteBearing := normalizeAngle(headingInWorld)
 
 	// get the new geopoint at distance poseMagnitude
 	newPosition := relativeTo.Location().PointAtDistanceAndBearing(kmPoint.Norm(), absoluteBearing)

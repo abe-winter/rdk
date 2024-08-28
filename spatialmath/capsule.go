@@ -8,8 +8,6 @@ import (
 
 	"github.com/golang/geo/r3"
 	commonpb "go.viam.com/api/common/v1"
-
-	"go.viam.com/rdk/utils"
 )
 
 // capsule is a collision geometry that represents a capsule, it has a pose and a radius that fully define it.
@@ -109,9 +107,9 @@ func (c *capsule) almostEqual(g Geometry) bool {
 	if !ok {
 		return false
 	}
-	return PoseAlmostEqualEps(c.pose, other.pose, 1e-6) &&
-		utils.Float64AlmostEqual(c.radius, other.radius, 1e-8) &&
-		utils.Float64AlmostEqual(c.length, other.length, 1e-8)
+	return PoseAlmostEqualEps(c.pose, other.pose, 1e-6)
+	// utils.Float64AlmostEqual(c.radius, other.radius, 1e-8) &&
+	// utils.Float64AlmostEqual(c.length, other.length, 1e-8)
 }
 
 // Transform premultiplies the capsule pose with a transform, allowing the capsule to be moved in space.
@@ -317,14 +315,14 @@ func capsuleVsBoxCollision(c *capsule, b *box, collisionBufferMM float64) bool {
 			return false
 		}
 		for j := 0; j < 3; j++ {
-			crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
+			// crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
 
-			// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
-			if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
-				if separatingAxisTest1D(&centerDist, &c.capVec, crossProductPlane, b.halfSize, rmB) > cutoff {
-					return false
-				}
-			}
+			// // if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
+			// if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
+			// 	if separatingAxisTest1D(&centerDist, &c.capVec, crossProductPlane, b.halfSize, rmB) > cutoff {
+			// 		return false
+			// 	}
+			// }
 		}
 	}
 	return true
@@ -351,16 +349,16 @@ func capsuleBoxSeparatingAxisDistance(c *capsule, b *box) float64 {
 		if separation := separatingAxisTest1D(&centerDist, &c.capVec, rmB.Row(i), b.halfSize, rmB); separation > max {
 			max = separation
 		}
-		for j := 0; j < 3; j++ {
-			crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
+		// for j := 0; j < 3; j++ {
+		// 	crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
 
-			// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
-			if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
-				if separation := separatingAxisTest1D(&centerDist, &c.capVec, crossProductPlane, b.halfSize, rmB); separation > max {
-					max = separation
-				}
-			}
-		}
+		// 	// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
+		// 	if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
+		// 		if separation := separatingAxisTest1D(&centerDist, &c.capVec, crossProductPlane, b.halfSize, rmB); separation > max {
+		// 			max = separation
+		// 		}
+		// 	}
+		// }
 	}
 	return max - c.radius
 }

@@ -8,8 +8,6 @@ import (
 
 	"github.com/golang/geo/r3"
 	commonpb "go.viam.com/api/common/v1"
-
-	"go.viam.com/rdk/utils"
 )
 
 // Ordered list of box vertices.
@@ -112,9 +110,10 @@ func (b *box) almostEqual(g Geometry) bool {
 		return false
 	}
 	for i := 0; i < 3; i++ {
-		if !utils.Float64AlmostEqual(b.halfSize[i], other.halfSize[i], 1e-8) {
-			return false
-		}
+		// if !utils.Float64AlmostEqual(b.halfSize[i], other.halfSize[i], 1e-8) {
+		// 	return false
+		// }
+		return false
 	}
 	return PoseAlmostEqualEps(b.pose, other.pose, 1e-6)
 }
@@ -284,14 +283,15 @@ func boxVsBoxCollision(a, b *box, collisionBufferMM float64) bool {
 			return false
 		}
 		for j := 0; j < 3; j++ {
-			crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
+			// crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
 
 			// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
-			if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
-				if separatingAxisTest(centerDist, crossProductPlane, a.halfSize, b.halfSize, rmA, rmB) > collisionBufferMM {
-					return false
-				}
-			}
+			return false
+			// if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
+			// 	if separatingAxisTest(centerDist, crossProductPlane, a.halfSize, b.halfSize, rmA, rmB) > collisionBufferMM {
+			// 		return false
+			// 	}
+			// }
 		}
 	}
 	return true
@@ -334,17 +334,17 @@ func boxVsBoxDistance(a, b *box) float64 {
 		}
 
 		// project onto a plane created by cross product of two edges from boxes
-		for j := 0; j < 3; j++ {
-			crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
+		// for j := 0; j < 3; j++ {
+		// 	crossProductPlane := rmA.Row(i).Cross(rmB.Row(j))
 
-			// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
-			if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
-				separation = separatingAxisTest(centerDist, crossProductPlane, a.halfSize, b.halfSize, rmA, rmB)
-				if separation > max {
-					max = separation
-				}
-			}
-		}
+		// 	// if edges are parallel, this check is already accounted for by one of the face projections, so skip this case
+		// 	if !utils.Float64AlmostEqual(crossProductPlane.Norm(), 0, floatEpsilon) {
+		// 		separation = separatingAxisTest(centerDist, crossProductPlane, a.halfSize, b.halfSize, rmA, rmB)
+		// 		if separation > max {
+		// 			max = separation
+		// 		}
+		// 	}
+		// }
 	}
 	return max
 }
