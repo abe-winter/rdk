@@ -4,12 +4,12 @@ import (
 	"context"
 	"math"
 
-	"github.com/golang/geo/r3"
 	commonpb "go.viam.com/api/common/v1"
 	pb "go.viam.com/api/component/movementsensor/v1"
 
 	"go.viam.com/rdk/protoutils"
 	"go.viam.com/rdk/resource"
+	"go.viam.com/rdk/utils"
 )
 
 type serviceServer struct {
@@ -98,7 +98,7 @@ func (s *serviceServer) GetAngularVelocity(
 		return nil, err
 	}
 	return &pb.GetAngularVelocityResponse{
-		AngularVelocity: protoutils.ConvertVectorR3ToProto(r3.Vector(av)),
+		AngularVelocity: protoutils.ConvertVectorR3ToProto(utils.Vector(av)),
 	}, nil
 }
 

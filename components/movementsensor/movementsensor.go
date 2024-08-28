@@ -6,14 +6,13 @@ import (
 	"math"
 	"strings"
 
-	"github.com/golang/geo/r3"
-	geo "github.com/kellydunn/golang-geo"
 	pb "go.viam.com/api/component/movementsensor/v1"
 
 	"go.viam.com/rdk/data"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/utils"
 )
 
 func init() {
@@ -122,16 +121,16 @@ type MovementSensor interface {
 	resource.Resource
 	// Position returns the current GeoPoint (latitude, longitude) and altitude of the movement sensor above sea level in meters.
 	// Supported by GPS models.
-	Position(ctx context.Context, extra map[string]interface{}) (*geo.Point, float64, error) // (lat, long), altitude (m)
+	Position(ctx context.Context, extra map[string]interface{}) (*utils.Point, float64, error) // (lat, long), altitude (m)
 
 	// LinearVelocity returns the current linear velocity as a 3D vector in meters per second.
-	LinearVelocity(ctx context.Context, extra map[string]interface{}) (r3.Vector, error) // m / sec
+	LinearVelocity(ctx context.Context, extra map[string]interface{}) (utils.Vector, error) // m / sec
 
 	// AngularVelcoity returns the current angular velocity as a 3D vector in degrees per second.
 	AngularVelocity(ctx context.Context, extra map[string]interface{}) (spatialmath.AngularVelocity, error) // deg / sec
 
 	// LinearAcceleration returns the current linear acceleration as a 3D vector in meters per second per second.
-	LinearAcceleration(ctx context.Context, extra map[string]interface{}) (r3.Vector, error)
+	LinearAcceleration(ctx context.Context, extra map[string]interface{}) (utils.Vector, error)
 
 	// CompassHeading returns the current compass heading in degrees.
 	CompassHeading(ctx context.Context, extra map[string]interface{}) (float64, error) // [0->360)

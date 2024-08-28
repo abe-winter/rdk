@@ -3,8 +3,6 @@ package movementsensor
 import (
 	"context"
 
-	"github.com/golang/geo/r3"
-	geo "github.com/kellydunn/golang-geo"
 	commonpb "go.viam.com/api/common/v1"
 	pb "go.viam.com/api/component/movementsensor/v1"
 	"go.viam.com/utils/rpc"
@@ -14,6 +12,7 @@ import (
 	"go.viam.com/rdk/protoutils"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/utils"
 )
 
 // client implements MovementSensorServiceClient.
@@ -43,7 +42,7 @@ func NewClientFromConn(
 	}, nil
 }
 
-func (c *client) Position(ctx context.Context, extra map[string]interface{}) (*geo.Point, float64, error) {
+func (c *client) Position(ctx context.Context, extra map[string]interface{}) (*utils.Point, float64, error) {
 	ext, err := structpb.NewStruct(extra)
 	if err != nil {
 		return nil, 0, err
@@ -55,22 +54,22 @@ func (c *client) Position(ctx context.Context, extra map[string]interface{}) (*g
 	if err != nil {
 		return nil, 0, err
 	}
-	return geo.NewPoint(resp.Coordinate.Latitude, resp.Coordinate.Longitude),
+	return utils.NewPoint(resp.Coordinate.Latitude, resp.Coordinate.Longitude),
 		float64(resp.AltitudeM),
 		nil
 }
 
-func (c *client) LinearVelocity(ctx context.Context, extra map[string]interface{}) (r3.Vector, error) {
+func (c *client) LinearVelocity(ctx context.Context, extra map[string]interface{}) (utils.Vector, error) {
 	ext, err := structpb.NewStruct(extra)
 	if err != nil {
-		return r3.Vector{}, err
+		return utils.Vector{}, err
 	}
 	resp, err := c.client.GetLinearVelocity(ctx, &pb.GetLinearVelocityRequest{
 		Name:  c.name,
 		Extra: ext,
 	})
 	if err != nil {
-		return r3.Vector{}, err
+		return utils.Vector{}, err
 	}
 	return protoutils.ConvertVectorProtoToR3(resp.LinearVelocity), nil
 }
@@ -90,17 +89,17 @@ func (c *client) AngularVelocity(ctx context.Context, extra map[string]interface
 	return spatialmath.AngularVelocity(protoutils.ConvertVectorProtoToR3(resp.AngularVelocity)), nil
 }
 
-func (c *client) LinearAcceleration(ctx context.Context, extra map[string]interface{}) (r3.Vector, error) {
+func (c *client) LinearAcceleration(ctx context.Context, extra map[string]interface{}) (utils.Vector, error) {
 	ext, err := structpb.NewStruct(extra)
 	if err != nil {
-		return r3.Vector{}, err
+		return utils.Vector{}, err
 	}
 	resp, err := c.client.GetLinearAcceleration(ctx, &pb.GetLinearAccelerationRequest{
 		Name:  c.name,
 		Extra: ext,
 	})
 	if err != nil {
-		return r3.Vector{}, err
+		return utils.Vector{}, err
 	}
 	return protoutils.ConvertVectorProtoToR3(resp.LinearAcceleration), nil
 }
