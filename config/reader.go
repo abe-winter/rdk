@@ -17,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	apppb "go.viam.com/api/app/v1"
 	"go.viam.com/utils"
-	"go.viam.com/utils/artifact"
 	"go.viam.com/utils/rpc"
 	"golang.org/x/sys/cpu"
 
@@ -115,19 +114,20 @@ func readFromCache(id string) (*Config, error) {
 }
 
 func storeToCache(id string, cfg *Config) error {
-	if err := os.MkdirAll(ViamDotDir, 0o700); err != nil {
-		return err
-	}
+	return errors.New("removed artifacts dep")
+	// if err := os.MkdirAll(ViamDotDir, 0o700); err != nil {
+	// 	return err
+	// }
 
-	md, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		return err
-	}
-	reader := bytes.NewReader(md)
+	// md, err := json.MarshalIndent(cfg, "", "  ")
+	// if err != nil {
+	// 	return err
+	// }
+	// reader := bytes.NewReader(md)
 
-	path := getCloudCacheFilePath(id)
+	// path := getCloudCacheFilePath(id)
 
-	return artifact.AtomicStore(path, reader, id)
+	// return artifact.AtomicStore(path, reader, id)
 }
 
 func clearCache(id string) {
