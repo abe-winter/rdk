@@ -315,6 +315,27 @@ func ModuleBuildLinkRepoAction(c *cli.Context) error {
 	return nil
 }
 
+// ModuleBuildLinkOAuthOrgAction links a viam org to a github app installation.
+func ModuleBuildLinkOAuthOrgAction(c *cli.Context) error {
+	req := buildpb.LinkOrgRequest{
+		OauthAppLinkId: c.String(moduleBuildFlagOAuthLink),
+		OrgId:          c.String(generalFlagOrgID),
+	}
+
+	client, err := newViamClient(c)
+	if err != nil {
+		return err
+	}
+	if err := client.ensureLoggedIn(); err != nil {
+		return err
+	}
+	if _, err := client.buildClient.LinkOrg(c.Context, &req); err != nil {
+		return err
+	}
+	infof(c.App.Writer, "Successfully attached org")
+	return nil
+}
+
 func (c *viamClient) startBuild(repo, ref, moduleID string, platforms []string, version string) (*buildpb.StartBuildResponse, error) {
 	if err := c.ensureLoggedIn(); err != nil {
 		return nil, err

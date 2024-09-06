@@ -1689,6 +1689,24 @@ This won't work unless you have an existing installation of our GitHub app on yo
 							},
 							Action: ModuleBuildLinkRepoAction,
 						},
+						{
+							Name:  "link-org",
+							Usage: "grant an org control over a GitHub app installation",
+							// TODO(APP-3604): unhide when this is shipped externally
+							Hidden: true,
+							Flags: []cli.Flag{
+								&cli.StringFlag{
+									Name:  moduleBuildFlagOAuthLink,
+									Usage: "ID of the oauth link between your GitHub org and Viam. Only required if you have more than one link",
+								},
+								&cli.StringFlag{
+									Name:     generalFlagOrgID,
+									Usage:    "an org ID; users with the 'control oauth links' permission on the org will be able to add and remove repos",
+									Required: true,
+								},
+							},
+							Action: ModuleBuildLinkOAuthOrgAction,
+						},
 					},
 				},
 				{
