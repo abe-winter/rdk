@@ -1,4 +1,4 @@
-//go:build no_cgo && !android
+//go:build no_cgo && !android && !windows
 
 // Package webstream provides controls for streaming from the web server.
 package webstream
