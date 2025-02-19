@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"runtime"
 	"sync"
 	"time"
 
@@ -502,11 +503,11 @@ func (server *Server) AddNewStreams(ctx context.Context) error {
 	}
 
 	for name := range server.videoSources {
-		// if runtime.GOOS == "windows" {
-		// 	// TODO(RSDK-1771): support video on windows
-		// 	server.logger.Warn("video streaming not supported on Windows yet")
-		// 	break
-		// }
+		if runtime.GOOS == "windows" {
+			// TODO(RSDK-1771): support video on windows
+			server.logger.Warn("video streaming not supported on Windows yet")
+			break
+		}
 		// We walk the updated set of `videoSources` and ensure all of the sources are "created" and
 		// "started".
 		config := gostream.StreamConfig{
