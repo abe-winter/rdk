@@ -1,4 +1,4 @@
-//go:build !no_cgo || android
+//go:build !no_cgo || android || windows
 
 // Package register registers all relevant cameras and also API specific functions
 package register
