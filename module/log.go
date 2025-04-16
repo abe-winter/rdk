@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -30,6 +31,16 @@ func (ma *moduleAppender) setModule(m *Module) {
 // Write sends the log entry back to the module's parent via gRPC or, if not
 // possible, outputs the log entry to the underlying stream.
 func (ma *moduleAppender) Write(log zapcore.Entry, fields []zapcore.Field) error {
+	// this is a hack to prevent a panic in RDK when we write an array
+	// panic: interface conversion: []interface {} is not zapcore.ArrayMarshaler: missing method MarshalLogArray
+	for i, field := range fields {
+		if field.Type == zapcore.ArrayMarshalerType {
+			field.String = fmt.Sprintf("%v", field.Interface)
+			field.Type = zapcore.StringType
+		}
+		fields[i] = field
+	}
+
 	if ma.module == nil {
 		return ma.stdoutAppender.Write(log, fields)
 	}
