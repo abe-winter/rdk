@@ -741,10 +741,12 @@ func (rc *RobotClient) resources(ctx context.Context) ([]resource.Name, []resour
 
 	typesResp, err := rc.client.ResourceRPCSubtypes(ctx, &pb.ResourceRPCSubtypesRequest{})
 	if err == nil {
+		rc.Logger().Info("pre DescriptorSourceFromServer")
 		reflSource := grpcurl.DescriptorSourceFromServer(ctx, rc.refClient)
 
 		resTypes = make([]resource.RPCAPI, 0, len(typesResp.ResourceRpcSubtypes))
 		for _, resAPI := range typesResp.ResourceRpcSubtypes {
+			rc.logger.Infof("findsymbol for service %s", resAPI.ProtoService)
 			symDesc, err := reflSource.FindSymbol(resAPI.ProtoService)
 			if err != nil {
 				// Note: This happens right now if a client is talking to a main server
@@ -771,7 +773,7 @@ func (rc *RobotClient) resources(ctx context.Context) ([]resource.Name, []resour
 		// prevent future calls to ResourceRPCSubtypes
 		rc.rpcSubtypesUnimplemented = true
 	}
-
+	rc.Logger().Info("okay rc.resources()")
 	return resources, resTypes, nil
 }
 
