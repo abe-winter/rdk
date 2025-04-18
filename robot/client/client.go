@@ -743,6 +743,8 @@ func (rc *RobotClient) resources(ctx context.Context) ([]resource.Name, []resour
 	if err == nil {
 		rc.Logger().Info("pre DescriptorSourceFromServer")
 		reflSource := grpcurl.DescriptorSourceFromServer(ctx, rc.refClient)
+		time.Sleep(time.Second * 2)
+		rc.logger.Info("slept two whole seconds")
 
 		resTypes = make([]resource.RPCAPI, 0, len(typesResp.ResourceRpcSubtypes))
 		for _, resAPI := range typesResp.ResourceRpcSubtypes {
