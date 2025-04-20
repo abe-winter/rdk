@@ -2,6 +2,8 @@ module go.viam.com/rdk
 
 go 1.23.8
 
+replace go.viam.com/utils => github.com/viamrobotics/goutils v0.1.141-0.20250420005549-2d9b834e120b
+
 require (
 	github.com/AlekSi/gocov-xml v1.0.0
 	github.com/Masterminds/semver/v3 v3.3.0
