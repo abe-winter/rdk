@@ -122,6 +122,11 @@ func ViamTCPSockets() bool {
 	// note: unix sockets have been supported on windows for a while, but go-grpc does not support them.
 	// 2017 support announcement: https://devblogs.microsoft.com/commandline/af_unix-comes-to-windows/
 	// go grpc client bug on win: https://github.com/dotnet/aspnetcore/issues/47043
+	if runtime.GOOS == "windows" {
+		// temporarily default to true on windows for this branch.
+		// todo: base it on windows OS version if possible
+		return true
+	}
 	return slices.Contains(EnvTrueValues, os.Getenv("VIAM_TCP_SOCKETS"))
 }
 
