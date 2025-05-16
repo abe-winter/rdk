@@ -109,13 +109,15 @@ func (svc *webService) initStreamServerForModule(ctx context.Context) error {
 	}
 
 	// Register the stream server + APIs with the gRPC server for modules.
-	if err := svc.modServer.RegisterServiceServer(
-		ctx,
-		&streampb.StreamService_ServiceDesc,
-		svc.streamServer,
-		streampb.RegisterStreamServiceHandlerFromEndpoint,
-	); err != nil {
-		return err
+	for _, srv := range svc.modServers() {
+		if err := srv.RegisterServiceServer(
+			ctx,
+			&streampb.StreamService_ServiceDesc,
+			svc.streamServer,
+			streampb.RegisterStreamServiceHandlerFromEndpoint,
+		); err != nil {
+			return err
+		}
 	}
 	return nil
 }
