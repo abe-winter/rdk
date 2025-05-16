@@ -66,6 +66,11 @@ type Module struct {
 	LocalVersion string
 }
 
+type ParentSockAddrs struct {
+	TCPAddr  string
+	UnixAddr string
+}
+
 // JSONManifest contains meta.json fields that are used by both RDK and CLI.
 type JSONManifest struct {
 	Entrypoint string `json:"entrypoint"`
