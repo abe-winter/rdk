@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -148,6 +149,14 @@ func (m *module) checkReady(ctx context.Context, parentAddr string) error {
 	}
 }
 
+// returns true if this module should be run in TCP mode.
+// (based on either global setting or per-module setting).
+func (m *module) tcpMode() bool {
+	return rutils.ViamTCPSockets() ||
+		(m.cfg.Environment != nil &&
+			slices.Contains(rutils.EnvTrueValues, m.cfg.Environment["VIAM_TCP_SOCKETS"]))
+}
+
 func (m *module) startProcess(
 	ctx context.Context,
 	parentAddr string,
@@ -157,7 +166,7 @@ func (m *module) startProcess(
 ) error {
 	var err error
 
-	if rutils.ViamTCPSockets() {
+	if m.tcpMode() {
 		if addr, err := getAutomaticPort(); err != nil {
 			return err
 		} else { //nolint:revive
