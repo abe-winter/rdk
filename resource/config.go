@@ -17,7 +17,8 @@ import (
 // A Config describes the configuration of a resource.
 type Config struct {
 	Name             string
-	API              API
+	API              API      // Primary API (for backward compatibility)
+	APIs             []API    // All APIs this resource implements (polymorphic support)
 	Model            Model
 	Frame            *referenceframe.LinkConfig
 	DependsOn        []string
@@ -34,6 +35,15 @@ type Config struct {
 	cachedImplicitDeps         []string
 	cachedOptionalImplicitDeps []string
 	cachedErr                  error
+}
+
+// AllAPIs returns all APIs this config specifies.
+// If APIs slice is empty (old configs), returns slice with just the primary API.
+func (conf *Config) AllAPIs() []API {
+	if len(conf.APIs) == 0 {
+		return []API{conf.API}
+	}
+	return conf.APIs
 }
 
 // A LogConfig describes the LogConfig config object.

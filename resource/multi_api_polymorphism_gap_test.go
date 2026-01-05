@@ -37,11 +37,12 @@ func TestPolymorphismGap_ResourceNotFoundViaSecondaryAPI(t *testing.T) {
 	// Create resource graph
 	graph := resource.NewGraph(logger)
 
-	// Add resource to graph under sensor.API
+	// Add resource to graph with BOTH APIs specified in config
 	sensorName := sensor.Named(resourceName)
 	node := resource.NewConfiguredGraphNode(
 		resource.Config{
-			API:  sensor.API, // ← Only ONE API can be specified
+			API:  sensor.API,                       // Primary API for backward compatibility
+			APIs: []resource.API{sensor.API, gizmoapi.API}, // All APIs this resource implements
 			Name: resourceName,
 		},
 		multiResource,

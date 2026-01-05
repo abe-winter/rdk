@@ -77,18 +77,24 @@ func (s graphStorage) Set(name Name, node *GraphNode) {
 }
 
 func (s graphStorage) setSimpleNameCache(name Name, node *GraphNode) {
-	simpleName := simpleNameKey{node.prefix + name.Name, name.API}
-	val := s.simpleNameCache[simpleName]
-	if val == nil {
-		val = &simpleNameVal{
-			remote: map[string]*GraphNode{},
+	// Index under ALL APIs this resource implements (polymorphic support)
+	// Get APIs from the node's config
+	cfg := node.Config()
+	apis := cfg.AllAPIs()
+	for _, api := range apis {
+		simpleName := simpleNameKey{node.prefix + name.Name, api}
+		val := s.simpleNameCache[simpleName]
+		if val == nil {
+			val = &simpleNameVal{
+				remote: map[string]*GraphNode{},
+			}
+			s.simpleNameCache[simpleName] = val
 		}
-		s.simpleNameCache[simpleName] = val
-	}
-	if name.Remote == "" {
-		val.local = node
-	} else {
-		val.remote[name.Remote] = node
+		if name.Remote == "" {
+			val.local = node
+		} else {
+			val.remote[name.Remote] = node
+		}
 	}
 }
 
@@ -96,14 +102,21 @@ func (s graphStorage) UpdateSimpleName(name Name, prevPrefix string, node *Graph
 	if prevPrefix == node.prefix {
 		return
 	}
-	prevSimpleName := simpleNameKey{prevPrefix + name.Name, name.API}
 
-	prevVal := s.simpleNameCache[prevSimpleName]
-	if prevVal != nil {
-		if name.Remote == "" {
-			prevVal.local = nil
-		} else {
-			delete(prevVal.remote, name.Remote)
+	// Update cache for ALL APIs (polymorphic support)
+	// Get APIs from the node's config
+	cfg := node.Config()
+	apis := cfg.AllAPIs()
+	for _, api := range apis {
+		prevSimpleName := simpleNameKey{prevPrefix + name.Name, api}
+
+		prevVal := s.simpleNameCache[prevSimpleName]
+		if prevVal != nil {
+			if name.Remote == "" {
+				prevVal.local = nil
+			} else {
+				delete(prevVal.remote, name.Remote)
+			}
 		}
 	}
 
@@ -116,16 +129,23 @@ func (s graphStorage) Delete(name Name) {
 	if node == nil {
 		return
 	}
-	simpleName := simpleNameKey{node.prefix + name.Name, name.API}
-	existing := s.simpleNameCache[simpleName]
-	if existing == nil {
-		return
+
+	// Delete cache entries for ALL APIs (polymorphic support)
+	// Get APIs from the node's config
+	cfg := node.Config()
+	apis := cfg.AllAPIs()
+	for _, api := range apis {
+		simpleName := simpleNameKey{node.prefix + name.Name, api}
+		existing := s.simpleNameCache[simpleName]
+		if existing == nil {
+			continue
+		}
+		if name.Remote == "" {
+			existing.local = nil
+		} else {
+			delete(existing.remote, name.Remote)
+		}
 	}
-	if name.Remote == "" {
-		existing.local = nil
-		return
-	}
-	delete(existing.remote, name.Remote)
 }
 
 func (s graphStorage) Copy() graphStorage {
