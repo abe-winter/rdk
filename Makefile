@@ -36,6 +36,12 @@ GO_FILES=$(shell find . -name "*.go")
 
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
+
+# Static deps (x264, nlopt) built via zig cc
+STATIC_DEPS_DIR = $(shell pwd)/etc/static-deps/out/$(GOOS)-$(GOARCH)
+STATIC_DEPS_PKG_CONFIG = $(STATIC_DEPS_DIR)/lib/pkgconfig
+STATIC_DEPS_CGO_FLAGS = PKG_CONFIG_PATH=$(STATIC_DEPS_PKG_CONFIG) CGO_LDFLAGS="-L$(STATIC_DEPS_DIR)/lib $(CGO_LDFLAGS)" CGO_CFLAGS="-I$(STATIC_DEPS_DIR)/include $(CGO_CFLAGS)"
+
 bin/$(GOOS)-$(GOARCH)/viam-cli: $(GO_FILES) Makefile go.mod go.sum
 	# no_cgo necessary here because of motionplan -> nlopt dependency.
 	# can be removed if you can run CGO_ENABLED=0 go build ./cli/viam on your local machine.
@@ -94,8 +100,12 @@ $(BIN_OUTPUT_PATH)/viam-server: $(GO_FILES) Makefile go.mod go.sum
 .PHONY: server
 server: $(BIN_OUTPUT_PATH)/viam-server
 
-$(BIN_OUTPUT_PATH)/viam-server-static: $(GO_FILES) Makefile go.mod go.sum
-	VIAM_STATIC_BUILD=1 GOFLAGS=$(GOFLAGS) go build $(GCFLAGS) $(LDFLAGS) -o $@ ./web/cmd/server
+.PHONY: static-deps
+static-deps:
+	./etc/static-deps/build.sh $(GOOS)-$(GOARCH)
+
+$(BIN_OUTPUT_PATH)/viam-server-static: $(GO_FILES) Makefile go.mod go.sum static-deps
+	VIAM_STATIC_BUILD=1 $(STATIC_DEPS_CGO_FLAGS) GOFLAGS=$(GOFLAGS) go build $(GCFLAGS) $(LDFLAGS) -o $@ ./web/cmd/server
 
 .PHONY: server-static
 server-static: $(BIN_OUTPUT_PATH)/viam-server-static
