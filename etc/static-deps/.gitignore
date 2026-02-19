@@ -1,0 +1,5 @@
+# Source checkouts (cloned by build.sh)
+src/
+
+# Build output (generated .a and headers)
+out/
