@@ -20,7 +20,7 @@ ifdef BUILD_DEBUG
 else
 	COMMON_LDFLAGS += -s -w
 endif
-LDFLAGS = -ldflags "-extld=$(shell pwd)/etc/ld_wrapper.sh $(COMMON_LDFLAGS)"
+LDFLAGS = -ldflags "$(COMMON_LDFLAGS)"
 
 default: build lint server
 
@@ -41,6 +41,7 @@ GOARCH ?= $(shell go env GOARCH)
 STATIC_DEPS_DIR = $(shell pwd)/etc/static-deps/out/$(GOOS)-$(GOARCH)
 STATIC_DEPS_PKG_CONFIG = $(STATIC_DEPS_DIR)/lib/pkgconfig
 STATIC_DEPS_CGO_FLAGS = PKG_CONFIG_PATH=$(STATIC_DEPS_PKG_CONFIG) CGO_LDFLAGS="-L$(STATIC_DEPS_DIR)/lib $(CGO_LDFLAGS)" CGO_CFLAGS="-I$(STATIC_DEPS_DIR)/include $(CGO_CFLAGS)"
+STATIC_LDFLAGS = -ldflags "-extldflags '-static-libgcc -static-libstdc++' $(COMMON_LDFLAGS)"
 
 bin/$(GOOS)-$(GOARCH)/viam-cli: $(GO_FILES) Makefile go.mod go.sum
 	# no_cgo necessary here because of motionplan -> nlopt dependency.
@@ -105,7 +106,7 @@ static-deps:
 	./etc/static-deps/build.sh $(GOOS)-$(GOARCH)
 
 $(BIN_OUTPUT_PATH)/viam-server-static: $(GO_FILES) Makefile go.mod go.sum static-deps
-	VIAM_STATIC_BUILD=1 $(STATIC_DEPS_CGO_FLAGS) GOFLAGS=$(GOFLAGS) go build $(GCFLAGS) $(LDFLAGS) -o $@ ./web/cmd/server
+	$(STATIC_DEPS_CGO_FLAGS) GOFLAGS=$(GOFLAGS) go build $(GCFLAGS) $(STATIC_LDFLAGS) -o $@ ./web/cmd/server
 
 .PHONY: server-static
 server-static: $(BIN_OUTPUT_PATH)/viam-server-static

@@ -14,6 +14,18 @@
 #   ./build.sh linux-arm64 linux-amd64
 #
 # Output goes to etc/static-deps/out/<target>/{lib,include}/
+#
+# The output directories contain only .a files (no .so), so the linker will
+# use them for static linking without needing -Bstatic. Just point CGO_LDFLAGS
+# at the output lib/ directory:
+#
+#   PKG_CONFIG_PATH=.../out/linux-amd64/lib/pkgconfig \
+#   CGO_LDFLAGS="-L.../out/linux-amd64/lib" \
+#   go build -ldflags "-extldflags '-static-libgcc -static-libstdc++'" \
+#     ./web/cmd/server
+#
+# CGO_LDFLAGS is required because go does not forward -L paths from pkg-config
+# to the external linker. PKG_CONFIG_PATH provides headers and -l flags.
 
 set -euo pipefail
 
