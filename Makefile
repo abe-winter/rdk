@@ -40,7 +40,9 @@ GOARCH ?= $(shell go env GOARCH)
 # Static deps (x264, nlopt) built via zig cc
 STATIC_DEPS_DIR = $(shell pwd)/etc/static-deps/out/$(GOOS)-$(GOARCH)
 STATIC_DEPS_PKG_CONFIG = $(STATIC_DEPS_DIR)/lib/pkgconfig
-STATIC_DEPS_CGO_FLAGS = PKG_CONFIG_PATH=$(STATIC_DEPS_PKG_CONFIG) CGO_LDFLAGS="-L$(STATIC_DEPS_DIR)/lib $(CGO_LDFLAGS)" CGO_CFLAGS="-I$(STATIC_DEPS_DIR)/include $(CGO_CFLAGS)"
+# PKG_CONFIG_PATH provides -I (headers) and -l (library names) via pkg-config.
+# CGO_LDFLAGS is required because go does not forward -L from pkg-config to the external linker.
+STATIC_DEPS_CGO_FLAGS = PKG_CONFIG_PATH=$(STATIC_DEPS_PKG_CONFIG) CGO_LDFLAGS="-L$(STATIC_DEPS_DIR)/lib $(CGO_LDFLAGS)"
 STATIC_LDFLAGS = -ldflags "-extldflags '-static-libgcc -static-libstdc++' $(COMMON_LDFLAGS)"
 
 bin/$(GOOS)-$(GOARCH)/viam-cli: $(GO_FILES) Makefile go.mod go.sum
