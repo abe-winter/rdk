@@ -68,19 +68,24 @@ type module struct {
 	ftdc   *ftdc.FTDC
 }
 
+func (m *module) absAddr() string {
+	if runtime.GOOS == "windows" {
+		// if you install on D: drive in windows, cwd will be d:\whatever, but
+		// the module will be running with cwd UserHomeDir/.viam/... .
+		// I think there's another branch with viamdotdir fixes.
+		homedir, _ := os.UserHomeDir()
+		// CAREFUL: this doesn't work in TCP mode
+		return homedir[:2] + m.addr
+	}
+	return m.addr
+}
+
 // dial will Dial the module and replace the underlying connection (if it exists) in m.conn.
 func (m *module) dial() error {
 	// TODO(PRODUCT-343): session support probably means interceptors here
 	var err error
-	addrToDial := m.addr
+	addrToDial := m.absAddr()
 	if !rutils.TCPRegex.MatchString(addrToDial) {
-		if runtime.GOOS == "windows" {
-			// if you install on D: drive in windows, cwd will be d:\whatever, but
-			// the module will be running with cwd UserHomeDir/.viam/... .
-			// I think there's another branch with viamdotdir fixes.
-			homedir, _ := os.UserHomeDir()
-			addrToDial = homedir[:2] + addrToDial
-		}
 		addrToDial = "unix:" + addrToDial
 	}
 
@@ -337,7 +342,7 @@ func (m *module) startProcess(
 			wd, _ := os.Getwd()
 			abspath, _ := filepath.Abs(m.addr)
 			m.logger.Infof("CHECKING FOR SOCKET. cwd %q, raw %q, abs %q", wd, m.addr, abspath)
-			_, err = os.Stat(m.addr)
+			_, err = os.Stat(m.absAddr())
 			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
