@@ -74,6 +74,13 @@ func (m *module) dial() error {
 	var err error
 	addrToDial := m.addr
 	if !rutils.TCPRegex.MatchString(addrToDial) {
+		if runtime.GOOS == "windows" {
+			// if you install on D: drive in windows, cwd will be d:\whatever, but
+			// the module will be running with cwd UserHomeDir/.viam/... .
+			// I think there's another branch with viamdotdir fixes.
+			homedir, _ := os.UserHomeDir()
+			addrToDial = homedir[:2] + addrToDial
+		}
 		addrToDial = "unix:" + addrToDial
 	}
 
